@@ -63,8 +63,22 @@ class YandexDisk(Cloud):
                 files.append(item["name"])
         return {"folders": folders, "files": files}
 
-    def download_file(self, path_remote: str, path_local: str):
-        pass
+    def download_file(self, path_remote: str, path_local: str) -> dict:
+        r = httpx.get(f"{self.url}resources/download", headers=self.headers,
+                      params={"path": path_remote, "fields": "href"})
+        if r.status_code != 200:
+            return self.error_worker(r.json())
+        response = httpx.get(r.json()["href"], follow_redirects=True)
+        if response.status_code != 200:
+            return self.error_worker(
+                {"error": "FileDownloadError", "message": f"Не возможно скачать файл {path_remote}"})
+        try:
+            with open(path.abspath(path_local), 'wb') as file:
+                file.write(response.content)
+            return {"status": "ok"}
+        except FileNotFoundError:
+            return self.error_worker(
+                {"error": "FileNotFoundError", "message": f"Не существует пути: {path.abspath(path_local)}"})
 
     def upload_file(self, path_local: str, path_remote: str):
         pass

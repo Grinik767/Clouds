@@ -56,3 +56,14 @@ class YandexDiskTests(unittest.TestCase):
 
     def test_create_folder_fail(self):
         self.assertEqual("DiskPathPointsToExistentDirectoryError", self.cloud.create_folder("folder")["error"])
+
+    def test_download_file_ok(self):
+        self.assertDictEqual({"status": "ok"}, self.cloud.download_file("folder/file.docx", "file.docx"))
+
+    def test_download_file_fail_remote(self):
+        self.assertDictEqual({"message": "Не удалось найти запрошенный ресурс.", "error": "DiskNotFoundError"},
+                             self.cloud.download_file("folder/file123.docx", "file.docx"))
+
+    def test_download_file_fail_local(self):
+        self.assertEqual("FileNotFoundError",
+                         self.cloud.download_file("folder/file.docx", "files123/file.docx")["error"])
