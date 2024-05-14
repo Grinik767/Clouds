@@ -38,3 +38,14 @@ class YandexDiskTests(unittest.TestCase):
 
     def test_configure_fail_local(self):
         self.assertRaises(Exception, self.cloud.configure, "/folder", path.abspath(__file__))
+
+    def test_get_folder_content_ok(self):
+        self.assertDictEqual({'folders': ["folder1"], 'files': ['file.docx']}, self.cloud.get_folder_content("folder"))
+
+    def test_get_folder_content_fail(self):
+        self.assertDictEqual({'error': 'DiskNotFoundError', 'message': 'Не удалось найти запрошенный ресурс.'},
+                             self.cloud.get_folder_content("folder1"))
+
+    def test_get_folder_content_fail_not_folder(self):
+        self.assertDictEqual({'error': 'NotAFolder', 'message': 'Запрошенный ресурс не является папкой'},
+                             self.cloud.get_folder_content("folder/file.docx"))

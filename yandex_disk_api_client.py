@@ -19,7 +19,7 @@ class YandexDisk(Cloud):
             return
         raise Exception("Ошибка аутентификации в Яндекс.Диске. Проверьте/обновите данные")
 
-    def configure(self, path_remote: str, path_local: str):
+    def configure(self, path_remote: str, path_local: str) -> None:
         r = httpx.get(f"{self.url}resources", headers=self.headers,
                       params={"path": path_remote, "fields": "type"})
         if r.status_code == 200:
@@ -44,8 +44,22 @@ class YandexDisk(Cloud):
                 "total_space": answer["total_space"] / (2 ** 20),
                 "used_space": answer["used_space"] / (2 ** 20)}
 
-    def get_folder_content(self, path: str):
-        pass
+    def get_folder_content(self, path: str) -> dict:
+        r = httpx.get(f"{self.url}resources", headers=self.headers,
+                      params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
+        answer = r.json()
+        if r.status_code != 200:
+            return self.error_worker(answer)
+        if answer["type"] != "dir":
+            return self.error_worker({"error": "NotAFolder", "message": "Запрошенный ресурс не является папкой"})
+        files = []
+        folders = []
+        for item in answer["_embedded"]["items"]:
+            if item["type"] == "dir":
+                folders.append(item["name"])
+            else:
+                files.append(item["name"])
+        return {"folders": folders, "files": files}
 
     def download_file(self, path_remote: str, path_local: str):
         pass
@@ -64,3 +78,4 @@ class YandexDisk(Cloud):
 if __name__ == '__main__':
     SystemClass.load_env()
     cloud = YandexDisk(getenv("DEV_AUTH_TOKEN"))
+    print(cloud.get_folder_content("folder/file.docx"))
