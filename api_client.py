@@ -3,11 +3,19 @@ from abc import ABC, abstractmethod
 
 class Cloud(ABC):
     @abstractmethod
-    def auth(self):
+    def auth(self, auth_token: str) -> None:
         pass
 
     @abstractmethod
     def configure(self):
+        pass
+
+    @abstractmethod
+    def get_disk_info(self):
+        pass
+
+    @abstractmethod
+    def get_folder_content(self, path: str):
         pass
 
     @abstractmethod
@@ -20,8 +28,4 @@ class Cloud(ABC):
 
     @abstractmethod
     def create_folder(self, name: str):
-        pass
-
-    @abstractmethod
-    def get_list_of_files(self, path: str):
         pass
