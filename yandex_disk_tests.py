@@ -64,6 +64,10 @@ class YandexDiskTests(unittest.TestCase):
         self.assertDictEqual({"message": "Не удалось найти запрошенный ресурс.", "error": "DiskNotFoundError"},
                              self.cloud.download_file("folder/file123.docx", "file.docx"))
 
+    def test_download_file_fail_remote_not_file(self):
+        self.assertDictEqual({"error": "NotAFile", "message": "Запрошенный ресурс не является файлом"},
+                             self.cloud.download_file("folder", "file.docx"))
+
     def test_download_file_fail_local(self):
         self.assertEqual("FileNotFoundError",
                          self.cloud.download_file("folder/file.docx", "files123/file.docx")["error"])

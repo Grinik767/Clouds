@@ -68,6 +68,10 @@ class YandexDisk(Cloud):
                       params={"path": path_remote, "fields": "href"})
         if r.status_code != 200:
             return self.error_worker(r.json())
+        r_type = httpx.get(f"{self.url}resources", headers=self.headers,
+                           params={"path": path_remote, "fields": "type,_embedded.items.name,_embedded.items.type"})
+        if r_type.json()["type"] != "file":
+            return self.error_worker({"error": "NotAFile", "message": "Запрошенный ресурс не является файлом"})
         response = httpx.get(r.json()["href"], follow_redirects=True)
         if response.status_code != 200:
             return self.error_worker(
