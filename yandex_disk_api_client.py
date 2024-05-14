@@ -1,3 +1,5 @@
+import os
+
 from api_client import Cloud
 from system_class import SystemClass
 from os import getenv, path
@@ -6,7 +8,7 @@ import httpx
 
 class YandexDisk(Cloud):
     def __init__(self, auth_token: str) -> None:
-        self.headers = None
+        self.session = None
         self.default_path_remote = "/"
         self.default_path_local = path.dirname(__file__)
         self.url = "https://cloud-api.yandex.net/v1/disk/"
@@ -15,13 +17,14 @@ class YandexDisk(Cloud):
     def auth(self, auth_token: str) -> None:
         r = httpx.get(self.url, headers={"Authorization": auth_token})
         if r.status_code == 200:
-            self.headers = {"Authorization": auth_token}
+            self.session = httpx.Client()
+            self.session.headers = {"Authorization": auth_token}
             return
         raise Exception("Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные")
 
     def configure(self, path_remote: str, path_local: str) -> None:
-        r = httpx.get(f"{self.url}resources", headers=self.headers,
-                      params={"path": path_remote, "fields": "type"})
+        with self.session:
+            r = self.session.get(f"{self.url}resources", params={"path": path_remote, "fields": "type"})
         if r.status_code == 200:
             if r.json()["type"] == "dir":
                 self.default_path_remote = path_remote
@@ -35,8 +38,8 @@ class YandexDisk(Cloud):
         raise Exception("Указанный локальный путь не является папкой")
 
     def get_disk_info(self) -> dict:
-        r = httpx.get(self.url, headers=self.headers,
-                      params={"fields": "user.login,user.display_name,total_space,used_space"})
+        with self.session:
+            r = self.session.get(self.url, params={"fields": "user.login,user.display_name,total_space,used_space"})
         if r.status_code != 200:
             return self.error_worker(r.json())
         answer = r.json()
@@ -47,8 +50,9 @@ class YandexDisk(Cloud):
     def get_folder_content(self, path: str) -> dict:
         if len(path) == 0:
             path = self.default_path_remote
-        r = httpx.get(f"{self.url}resources", headers=self.headers,
-                      params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
+        with self.session:
+            r = self.session.get(f"{self.url}resources",
+                                 params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
         if r.status_code != 200:
             return self.error_worker(answer)
@@ -64,12 +68,12 @@ class YandexDisk(Cloud):
         return {"folders": folders, "files": files}
 
     def download_file(self, path_remote: str, path_local: str) -> dict:
-        r = httpx.get(f"{self.url}resources/download", headers=self.headers,
-                      params={"path": path_remote, "fields": "href"})
-        if r.status_code != 200:
-            return self.error_worker(r.json())
-        r_type = httpx.get(f"{self.url}resources", headers=self.headers,
-                           params={"path": path_remote, "fields": "type,_embedded.items.name,_embedded.items.type"})
+        with self.session:
+            r = self.session.get(f"{self.url}resources/download", params={"path": path_remote, "fields": "href"})
+            if r.status_code != 200:
+                return self.error_worker(r.json())
+            r_type = self.session.get(f"{self.url}resources", params={"path": path_remote,
+                                                                      "fields": "type,_embedded.items.name,_embedded.items.type"})
         if r_type.json()["type"] != "file":
             return self.error_worker({"error": "NotAFile", "message": "Запрошенный ресурс не является файлом"})
         response = httpx.get(r.json()["href"], follow_redirects=True)
@@ -85,18 +89,26 @@ class YandexDisk(Cloud):
                 {"error": "FileNotFoundError", "message": f"Не существует пути: {path.abspath(path_local)}"})
 
     def upload_file(self, path_local: str, path_remote: str):
-        pass
+        if not path.isfile(path_local):
+            return self.error_worker({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"})
+        with self.session:
+            r = self.session.get(f"{self.url}resources/upload",
+                                 params={"path": path_remote, "fields": "href", "overwrite": True})
+        if r.status_code != 200:
+            return self.error_worker(r.json())
 
     def create_folder(self, path: str) -> dict:
-        r = httpx.put(f"{self.url}resources", headers=self.headers, params={"path": path})
+        with self.session:
+            r = self.session.put(f"{self.url}resources", params={"path": path})
         if r.status_code == 201:
             return {"status": "ok"}
         return self.error_worker(r.json())
 
     # just for unit tests
     def delete_folder(self, path: str) -> None:
-        httpx.delete(f"{self.url}resources", headers=self.headers, params={"path": path, "force_async": True,
-                                                                           "permanently": True})
+        httpx.delete(f"{self.url}resources", headers={"Authorization": os.getenv("DEV_AUTH_TOKEN")},
+                     params={"path": path, "force_async": True,
+                             "permanently": True})
 
     @staticmethod
     def error_worker(response: dict) -> dict:
