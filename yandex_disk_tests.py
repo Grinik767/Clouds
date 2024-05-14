@@ -14,3 +14,9 @@ class YandexDiskTests(unittest.TestCase):
 
     def test_auth_fail(self):
         self.assertRaises(Exception, self.cloud.auth, getenv("DEV_AUTH_TOKEN") + "ab")
+
+    def test_disk_info(self):
+        response = self.cloud.get_disk_info()
+        self.assertEqual(["login", "name", "total_space", "used_space"], list(response.keys()))
+        self.assertEqual("anonymous.wind", response["login"])
+        self.assertEqual("anonymous.wind", response["name"])
