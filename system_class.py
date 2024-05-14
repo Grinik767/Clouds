@@ -13,4 +13,4 @@ class SystemClass:
         if os.path.exists(dotenv_path):
             load_dotenv(dotenv_path)
             return
-        raise Exception(".env файл не смог быть подгружен.")
+        raise Exception(".env файл не смог быть подгружен")

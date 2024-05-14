@@ -1,12 +1,14 @@
 from api_client import Cloud
 from system_class import SystemClass
-from os import getenv
+from os import getenv, path
 import httpx
 
 
 class YandexDisk(Cloud):
     def __init__(self, auth_token: str) -> None:
         self.headers = None
+        self.default_path_remote = "/"
+        self.default_path_local = path.dirname(__file__)
         self.url = "https://cloud-api.yandex.net/v1/disk/"
         self.auth(auth_token)
 
@@ -15,10 +17,22 @@ class YandexDisk(Cloud):
         if r.status_code == 200:
             self.headers = {"Authorization": auth_token}
             return
-        raise Exception("Ошибка аутентификации в Яндекс.Диске. Проверьте/обновите данные.")
+        raise Exception("Ошибка аутентификации в Яндекс.Диске. Проверьте/обновите данные")
 
-    def configure(self):
-        pass
+    def configure(self, path_remote: str, path_local: str):
+        r = httpx.get(f"{self.url}resources", headers=self.headers,
+                      params={"path": path_remote, "fields": "type"})
+        if r.status_code == 200:
+            if r.json()["type"] == "dir":
+                self.default_path_remote = path_remote
+            else:
+                raise Exception("Указанный путь не является папкой")
+        else:
+            raise Exception("Ошибка доступа к удаленной папке")
+        if path.isdir(path_local):
+            self.default_path_local = path.dirname(path.abspath(path_local))
+            return
+        raise Exception("Указанный локальный путь не является папкой")
 
     def get_disk_info(self) -> dict:
         r = httpx.get(self.url, headers=self.headers,

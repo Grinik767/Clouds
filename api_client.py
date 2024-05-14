@@ -7,7 +7,7 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    def configure(self):
+    def configure(self, path_remote: str, path_local: str):
         pass
 
     @abstractmethod
