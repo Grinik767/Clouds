@@ -49,3 +49,10 @@ class YandexDiskTests(unittest.TestCase):
     def test_get_folder_content_fail_not_folder(self):
         self.assertDictEqual({'error': 'NotAFolder', 'message': 'Запрошенный ресурс не является папкой'},
                              self.cloud.get_folder_content("folder/file.docx"))
+
+    def test_create_folder_ok(self):
+        self.assertDictEqual({"status": "ok"}, self.cloud.create_folder("folder/fold"))
+        self.cloud.delete_folder("folder/fold")
+
+    def test_create_folder_fail(self):
+        self.assertEqual("DiskPathPointsToExistentDirectoryError", self.cloud.create_folder("folder")["error"])

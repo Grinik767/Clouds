@@ -17,7 +17,7 @@ class YandexDisk(Cloud):
         if r.status_code == 200:
             self.headers = {"Authorization": auth_token}
             return
-        raise Exception("Ошибка аутентификации в Яндекс.Диске. Проверьте/обновите данные")
+        raise Exception("Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные")
 
     def configure(self, path_remote: str, path_local: str) -> None:
         r = httpx.get(f"{self.url}resources", headers=self.headers,
@@ -45,6 +45,8 @@ class YandexDisk(Cloud):
                 "used_space": answer["used_space"] / (2 ** 20)}
 
     def get_folder_content(self, path: str) -> dict:
+        if len(path) == 0:
+            path = self.default_path_remote
         r = httpx.get(f"{self.url}resources", headers=self.headers,
                       params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
@@ -67,8 +69,16 @@ class YandexDisk(Cloud):
     def upload_file(self, path_local: str, path_remote: str):
         pass
 
-    def create_folder(self, name: str):
-        pass
+    def create_folder(self, path: str) -> dict:
+        r = httpx.put(f"{self.url}resources", headers=self.headers, params={"path": path})
+        if r.status_code == 201:
+            return {"status": "ok"}
+        return self.error_worker(r.json())
+
+    # just for unit tests
+    def delete_folder(self, path: str) -> None:
+        httpx.delete(f"{self.url}resources", headers=self.headers, params={"path": path, "force_async": True,
+                                                                           "permanently": True})
 
     @staticmethod
     def error_worker(response: dict) -> dict:
@@ -78,4 +88,3 @@ class YandexDisk(Cloud):
 if __name__ == '__main__':
     SystemClass.load_env()
     cloud = YandexDisk(getenv("DEV_AUTH_TOKEN"))
-    print(cloud.get_folder_content("folder/file.docx"))

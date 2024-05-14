@@ -33,7 +33,7 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    def create_folder(self, name: str):
+    def create_folder(self, path: str):
         pass
 
     @staticmethod
