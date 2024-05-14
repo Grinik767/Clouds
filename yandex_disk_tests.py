@@ -55,7 +55,7 @@ class YandexDiskTests(unittest.TestCase):
         self.cloud.delete_folder("folder/fold")
 
     def test_create_folder_fail(self):
-        self.assertEqual("DiskPathPointsToExistentDirectoryError", self.cloud.create_folder("folder")["error"])
+        self.assertEqual("DiskPathPointsToExistentDirectoryError", self.cloud.create_folder("folder/folder1")["error"])
 
     def test_download_file_ok(self):
         self.assertDictEqual({"status": "ok"}, self.cloud.download_file("folder/file.docx", "file.docx"))
@@ -71,3 +71,14 @@ class YandexDiskTests(unittest.TestCase):
     def test_download_file_fail_local(self):
         self.assertEqual("FileNotFoundError",
                          self.cloud.download_file("folder/file.docx", "files123/file.docx")["error"])
+
+    def test_upload_file_ok(self):
+        self.assertDictEqual({"status": "ok"}, self.cloud.upload_file("for_tests/1.txt", "folder/folder1/1.txt"))
+
+    def test_upload_file_fail_local(self):
+        self.assertDictEqual({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"},
+                             self.cloud.upload_file("for_tests", "folder/folder1/1.txt"))
+
+    def test_upload_file_fail_remote(self):
+        self.assertEqual("DiskPathDoesntExistsError",
+                         self.cloud.upload_file("for_tests/1.txt", "folders123/1.txt")['error'])

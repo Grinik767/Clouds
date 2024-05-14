@@ -86,15 +86,20 @@ class YandexDisk(Cloud):
             return {"status": "ok"}
         except FileNotFoundError:
             return self.error_worker(
-                {"error": "FileNotFoundError", "message": f"Не существует пути: {path.abspath(path_local)}"})
+                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
 
-    def upload_file(self, path_local: str, path_remote: str):
+    def upload_file(self, path_local: str, path_remote: str) -> dict:
         if not path.isfile(path_local):
             return self.error_worker({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"})
         with self.session:
             r = self.session.get(f"{self.url}resources/upload",
                                  params={"path": path_remote, "fields": "href", "overwrite": True})
-        if r.status_code != 200:
+            if r.status_code != 200:
+                return self.error_worker(r.json())
+            with open(path.abspath(path_local), 'rb') as data:
+                r = self.session.put(r.json()["href"], content=data)
+            if r.status_code == 201:
+                return {"status": "ok"}
             return self.error_worker(r.json())
 
     def create_folder(self, path: str) -> dict:
