@@ -31,6 +31,13 @@ class CloudBoss:
     def create_folder(self, cloud_name: str, path: str):
         try:
             self.clouds[cloud_name].create_folder(path)
-            click.echo("Папка успешно создана")
+            click.echo("Папка успешно создана!")
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
+
+    def download_file(self, cloud_name: str, path_remote: str, path_local: str):
+        try:
+            self.clouds[cloud_name].download_file(path_remote, path_local)
+            click.echo("Файл успешно скачан!")
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")

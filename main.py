@@ -47,5 +47,19 @@ def create_folder(ctx, path: str, cloud: str):
         pass
 
 
+@cli.command()
+@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.argument('path_remote')
+@click.argument('path_local')
+@click.pass_context
+def download(ctx, cloud, path_remote, path_local):
+    """Скачать файл/папку из облака."""
+    if cloud == "yandex":
+        ctx.obj.download_file(cloud, path_remote, path_local)
+    else:
+        pass
+
+
 if __name__ == '__main__':
     cli()
