@@ -35,9 +35,16 @@ class CloudBoss:
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")
 
-    def download_file(self, cloud_name: str, path_remote: str, path_local: str):
+    def download(self, cloud_name: str, path_remote: str, path_local: str):
         try:
             self.clouds[cloud_name].download_file(path_remote, path_local)
             click.echo("Файл успешно скачан!")
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
+
+    def upload(self, cloud_name: str, path_local: str, path_remote: str):
+        try:
+            self.clouds[cloud_name].upload_file(path_local, path_remote)
+            click.echo("Файл успешно загружен!")
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")
