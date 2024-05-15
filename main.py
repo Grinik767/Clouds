@@ -1,8 +1,5 @@
 from cloud_boss import CloudBoss
-from os import getenv
 import click
-
-cloud_boss = CloudBoss()
 
 
 @click.group()
@@ -18,7 +15,7 @@ def cli(ctx):
 def info(ctx, cloud: str):
     """Получить информацию об облаке."""
     if cloud == "yandex":
-        ctx.obj.get_cloud_info("yandex")
+        ctx.obj.get_cloud_info(cloud)
     else:
         pass
 
