@@ -19,3 +19,11 @@ class CloudBoss:
                 f"MB\nИспользовано:\t{round(response['used_space'], 3)} MB")
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")
+
+    def get_folder_content(self, cloud_name: str, path: str):
+        try:
+            response = self.clouds[cloud_name].get_folder_content(path)
+            click.echo('\n'.join(map(lambda el: f"/{el}", response['folders'])))
+            click.echo('\n'.join(response['files']))
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
