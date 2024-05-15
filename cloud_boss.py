@@ -27,3 +27,10 @@ class CloudBoss:
             click.echo('\n'.join(response['files']))
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")
+
+    def create_folder(self, cloud_name: str, path: str):
+        try:
+            self.clouds[cloud_name].create_folder(path)
+            click.echo("Папка успешно создана")
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")

@@ -34,5 +34,18 @@ def folder_content(ctx, path: str, cloud: str):
         pass
 
 
+@cli.command()
+@click.argument('path')
+@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.pass_context
+def create_folder(ctx, path: str, cloud: str):
+    """Создать папку в облаке."""
+    if cloud == "yandex":
+        ctx.obj.create_folder(cloud, path)
+    else:
+        pass
+
+
 if __name__ == '__main__':
     cli()
