@@ -1,16 +1,12 @@
-import os
-
 from api_client import Cloud
 from system_class import SystemClass
-from os import getenv, path
+from os import path, getenv
 import httpx
 
 
 class YandexDisk(Cloud):
     def __init__(self, auth_token: str) -> None:
         self.session = None
-        self.default_path_remote = "/"
-        self.default_path_local = path.dirname(__file__)
         self.url = "https://cloud-api.yandex.net/v1/disk/"
         self.auth(auth_token)
 
@@ -20,24 +16,10 @@ class YandexDisk(Cloud):
             self.session = httpx.Client()
             self.session.headers = {"Authorization": auth_token}
             return
-        raise Exception("Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные")
+        self.error_worker(
+            {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
 
-    def configure(self, path_remote: str, path_local: str) -> None:
-        with self.session:
-            r = self.session.get(f"{self.url}resources", params={"path": path_remote, "fields": "type"})
-        if r.status_code == 200:
-            if r.json()["type"] == "dir":
-                self.default_path_remote = path_remote
-            else:
-                raise Exception("Указанный путь не является папкой")
-        else:
-            raise Exception("Ошибка доступа к удаленной папке")
-        if path.isdir(path_local):
-            self.default_path_local = path.dirname(path.abspath(path_local))
-            return
-        raise Exception("Указанный локальный путь не является папкой")
-
-    def get_disk_info(self) -> dict:
+    def get_cloud_info(self) -> dict:
         with self.session:
             r = self.session.get(self.url, params={"fields": "user.login,user.display_name,total_space,used_space"})
         if r.status_code != 200:
@@ -48,8 +30,6 @@ class YandexDisk(Cloud):
                 "used_space": answer["used_space"] / (2 ** 20)}
 
     def get_folder_content(self, path: str) -> dict:
-        if len(path) == 0:
-            path = self.default_path_remote
         with self.session:
             r = self.session.get(f"{self.url}resources",
                                  params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
@@ -111,15 +91,15 @@ class YandexDisk(Cloud):
 
     # just for unit tests
     def delete_folder(self, path: str) -> None:
-        httpx.delete(f"{self.url}resources", headers={"Authorization": os.getenv("DEV_AUTH_TOKEN")},
+        httpx.delete(f"{self.url}resources", headers={"Authorization": getenv("DEV_AUTH_TOKEN_YANDEX")},
                      params={"path": path, "force_async": True,
                              "permanently": True})
 
     @staticmethod
-    def error_worker(response: dict) -> dict:
-        return {"error": response["error"], "message": response["message"]}
+    def error_worker(response: dict):
+        with SystemClass.except_handler(SystemClass.exchandler):
+            raise Exception(f"{response['error']}. {response['message']}")
 
 
 if __name__ == '__main__':
-    SystemClass.load_env()
-    cloud = YandexDisk(getenv("DEV_AUTH_TOKEN"))
+    pass

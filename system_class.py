@@ -1,5 +1,8 @@
 import os
+from typing import Callable
 from dotenv import load_dotenv
+import sys
+from contextlib import contextmanager
 
 
 class SystemClass:
@@ -13,4 +16,15 @@ class SystemClass:
         if os.path.exists(dotenv_path):
             load_dotenv(dotenv_path)
             return
-        raise Exception(".env файл не смог быть подгружен")
+        with SystemClass.except_handler(SystemClass.exchandler):
+            raise Exception(".env файл не смог быть подгружен")
+
+    @contextmanager
+    def except_handler(self: Callable):
+        sys.excepthook = self
+        yield
+        sys.excepthook = sys.__excepthook__
+
+    @staticmethod
+    def exchandler(type, value, traceback):
+        print(': '.join([str(type.__name__), str(value)]))
