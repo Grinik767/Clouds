@@ -1,5 +1,3 @@
-from httpx._client import ClientState, T
-
 from api_client import Cloud
 from system_class import SystemClass
 from os import path, getenv
@@ -14,8 +12,7 @@ class GoogleDrive(Cloud):
         self.token = auth_token
 
     def auth(self, auth_token: str) -> None:
-        self.session = httpx.Client()
-        self.session.headers = {"Authorization": f"Bearer {auth_token}"}
+        self.session = httpx.Client(headers={"Authorization": f"Bearer {auth_token}"})
 
     def get_cloud_info(self) -> dict:
         with self.session:

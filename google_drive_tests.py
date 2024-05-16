@@ -1,6 +1,6 @@
 import unittest
 from os import getenv, path
-from one_drive_api_client import GoogleDrive
+from google_drive_api_client import GoogleDrive
 
 
 class GoogleDriveTests(unittest.TestCase):
