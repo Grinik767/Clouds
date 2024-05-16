@@ -12,17 +12,15 @@ class YandexDisk(Cloud):
 
     def auth(self, auth_token: str) -> None:
         r = httpx.get(self.url, headers={"Authorization": auth_token})
-        if r.status_code == 200:
-            self.session = httpx.Client()
-            self.session.headers = {"Authorization": auth_token}
-            return
-        self.error_worker(
-            {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
+        if r.status_code != httpx.codes.OK:
+            self.error_worker(
+                {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
+        self.session = httpx.Client(headers={"Authorization": auth_token})
 
     def get_cloud_info(self) -> dict:
         with self.session:
             r = self.session.get(self.url, params={"fields": "user.login,user.display_name,total_space,used_space"})
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(r.json())
         answer = r.json()
         return {"login": answer["user"]["login"], "name": answer["user"]["display_name"],
@@ -34,7 +32,7 @@ class YandexDisk(Cloud):
             r = self.session.get(f"{self.url}resources",
                                  params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(answer)
         if answer["type"] != "dir":
             return self.error_worker({"error": "NotAFolder", "message": "Запрошенный ресурс не является папкой"})
