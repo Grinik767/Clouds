@@ -85,7 +85,7 @@ class Dropbox(Cloud):
                 "message": f"Неверный путь: {path.abspath(path_local)}"
             })
 
-    async def upload_file(self, path_local: str, path_remote: str) -> dict:
+    def upload_file(self, path_local: str, path_remote: str) -> dict:
         data = {
             "path": path_remote,
             "mode": "add",
@@ -95,7 +95,12 @@ class Dropbox(Cloud):
         try:
             with open(path_local, "rb") as f:
                 files = {"file": f}
-                r = await self.session.post(f"{self.url}files/upload", data=data, files=files)
+                headers = {
+                    "Authorization": f"Bearer {self.auth_token}",
+                    "Dropbox-API-Arg": json.dumps(data),
+                    "Content-Type": "application/octet-stream"
+                }
+                r = self.session.post("https://content.dropboxapi.com/2/files/upload", headers=headers, files=files)
         except FileNotFoundError:
             return self.error_worker({
                 "error": "FileNotFoundError",
@@ -105,11 +110,15 @@ class Dropbox(Cloud):
         if r.status_code == 200:
             return {"status": "ok"}
         else:
-            return self.error_worker(await r.json())
+            return self.error_worker(r.json())
 
     def create_folder(self, path: str) -> dict:
-        data = {"path": path}
-        r = self.session.post(f"{self.url}files/create_folder_v2", json=data)
+        data = {"path": path, "autorename": False}
+        headers = {
+            "Authorization": f"Bearer {self.auth_token}",
+            "Content-Type": "application/json"
+        }
+        r = self.session.post("https://api.dropboxapi.com/2/files/create_folder_v2", json=data, headers=headers)
         if r.status_code == 200:
             return {"status": "ok"}
         else:
@@ -122,8 +131,5 @@ class Dropbox(Cloud):
 
 if __name__ == '__main__':
     driver = Dropbox(
-        "")
-    #print(driver.get_cloud_info())
-    #print(driver.get_folder_content("/folder1"))
-    #print(driver.get_folder_content("/folder1/photo.jpg"))
-    print(driver.download_file("/folder1/photo.jpg", "Загрузки"))
+        "sl.B1Vs09auXZeCvoXQ7thY0tk52PD2rjTf_lNb3sGUfPgOhmoSffukrh_KNh0xyCmWshs4GX4xcUbacIzaSEzYBbCFwsPUKQMjiuYHVi5J_wfhQJebzQL4ouXFvtseWTszzrWH0iviYiiuk2uMSzT0xhU")
+
