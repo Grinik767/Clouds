@@ -35,7 +35,8 @@ class Dropbox(Cloud):
         return {
             "name": usage_info["name"]["display_name"],
             "email": usage_info["email"],
-            "used_space": used_space / 2 ** 20
+            "used_space": used_space / 2 ** 20,
+            "total_space": ""
         }
 
     def get_folder_content(self, path: str) -> dict:
@@ -126,10 +127,10 @@ class Dropbox(Cloud):
     @staticmethod
     def error_worker(response: dict):
         with SystemClass.except_handler(SystemClass.exchandler):
-            raise Exception(f"{response['error']}. {response['message']}")
+            raise Exception(f"{response['error']['.tag']}. {response['message']}")
 
 
 if __name__ == '__main__':
     driver = Dropbox(
-        "sl.B1Vs09auXZeCvoXQ7thY0tk52PD2rjTf_lNb3sGUfPgOhmoSffukrh_KNh0xyCmWshs4GX4xcUbacIzaSEzYBbCFwsPUKQMjiuYHVi5J_wfhQJebzQL4ouXFvtseWTszzrWH0iviYiiuk2uMSzT0xhU")
+        "")
 
