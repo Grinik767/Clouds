@@ -9,8 +9,7 @@ def cloud(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=f"https://cloud-api.yandex.net/v1/disk/",
         method="GET",
-        match_headers={"Authorization": "1234"},
-        status_code=httpx.codes.OK
+        match_headers={"Authorization": "1234"}
     )
     return YandexDisk(auth_token="1234")
 
@@ -38,8 +37,7 @@ def test_get_cloud_info(cloud: YandexDisk, httpx_mock: HTTPXMock):
             "total_space": 1024 * 2 ** 20,
             "used_space": 512 * 2 ** 20
         },
-        match_headers={"Authorization": "1234"},
-        status_code=httpx.codes.OK
+        match_headers={"Authorization": "1234"}
     )
     cloud_info = cloud.get_cloud_info()
     assert cloud_info["login"] == "test_user" and cloud_info["name"] == "Test User" and cloud_info[
@@ -59,14 +57,13 @@ def test_get_folder_content_ok(cloud: YandexDisk, httpx_mock: HTTPXMock):
                 ]
             }
         },
-        match_headers={"Authorization": "1234"},
-        status_code=httpx.codes.OK
+        match_headers={"Authorization": "1234"}
     )
     folder_content = cloud.get_folder_content("/")
     assert ["folder1"] == folder_content["folders"] and ["file1.txt"] == folder_content["files"]
 
 
-def test_get_folder_content_fail_remote_no_path(cloud: YandexDisk, httpx_mock: HTTPXMock):
+def test_get_folder_content_fail_remote(cloud: YandexDisk, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=f"{cloud.url}resources?path=%2Fabracad&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
@@ -86,8 +83,7 @@ def test_get_folder_content_fail_remote_not_folder(cloud: YandexDisk, httpx_mock
         json={
             "type": "file",
         },
-        match_headers={"Authorization": "1234"},
-        status_code=httpx.codes.OK
+        match_headers={"Authorization": "1234"}
     )
     with pytest.raises(Exception) as e_info:
         cloud.get_folder_content("folder/file.docx")
@@ -109,10 +105,44 @@ def test_download_file_ok(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
     )
     httpx_mock.add_response(
         url="https://download.example.com/file.txt",
-        content=b"Hello, World!",
-        status_code=httpx.codes.OK
+        content=b"Hello, World!"
     )
     local_path = tmp_path / "file.txt"
     result = cloud.download_file("/path/to/file.txt", str(local_path))
-    assert result["status"] == "ok"
-    assert local_path.read_bytes() == b"Hello, World!"
+    assert result["status"] == "ok" and local_path.read_bytes() == b"Hello, World!"
+
+
+def test_download_file_fail_remote(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=folder%2Ffile123.docx&fields=href",
+        method="GET",
+        match_headers={"Authorization": "1234"},
+        json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
+        status_code=httpx.codes.NOT_FOUND)
+    local_path = tmp_path / "file.txt"
+    with pytest.raises(Exception) as e_info:
+        cloud.download_file("folder/file123.docx", str(local_path))
+    assert e_info.value.args[0] == 'DiskNotFoundError. Не удалось найти запрошенный ресурс.'
+
+
+def test_download_file_fail_local(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffile.txt&fields=href",
+        method="GET",
+        match_headers={"Authorization": "1234"},
+        json={"href": "https://download.example.com/file.txt"}
+    )
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffile.txt&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        method="GET",
+        match_headers={"Authorization": "1234"},
+        json={"type": "file"}
+    )
+    httpx_mock.add_response(
+        url="https://download.example.com/file.txt",
+        content=b"Hello, World!"
+    )
+    local_path = tmp_path / "abracad" / "file.txt"
+    with pytest.raises(Exception) as e_info:
+        cloud.download_file("/path/to/file.txt", str(local_path))
+    assert e_info.value.args[0] == f'FileNotFoundError. Неверный путь: {str(local_path)}'
