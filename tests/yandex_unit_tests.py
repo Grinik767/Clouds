@@ -68,7 +68,7 @@ def test_get_folder_content_ok(cloud: YandexDisk, httpx_mock: HTTPXMock):
 
 def test_get_folder_content_fail_remote_no_path(cloud: YandexDisk, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url=f"{cloud.url}resources?path=%2F&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        url=f"{cloud.url}resources?path=%2Fabracad&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
         json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
         match_headers={"Authorization": "1234"},
@@ -92,3 +92,27 @@ def test_get_folder_content_fail_remote_not_folder(cloud: YandexDisk, httpx_mock
     with pytest.raises(Exception) as e_info:
         cloud.get_folder_content("folder/file.docx")
     assert e_info.value.args[0] == 'NotAFolder. Запрошенный ресурс не является папкой'
+
+
+def test_download_file_ok(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffile.txt&fields=href",
+        method="GET",
+        match_headers={"Authorization": "1234"},
+        json={"href": "https://download.example.com/file.txt"}
+    )
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffile.txt&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        method="GET",
+        match_headers={"Authorization": "1234"},
+        json={"type": "file"}
+    )
+    httpx_mock.add_response(
+        url="https://download.example.com/file.txt",
+        content=b"Hello, World!",
+        status_code=httpx.codes.OK
+    )
+    local_path = tmp_path / "file.txt"
+    result = cloud.download_file("/path/to/file.txt", str(local_path))
+    assert result["status"] == "ok"
+    assert local_path.read_bytes() == b"Hello, World!"
