@@ -21,7 +21,6 @@ def test_auth_fail(cloud: YandexDisk, httpx_mock: HTTPXMock):
         method="GET",
         status_code=httpx.codes.UNAUTHORIZED
     )
-
     with pytest.raises(Exception) as e_info:
         cloud.auth("1234")
     assert e_info.value.args[0] == 'AuthError. Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные'
@@ -42,13 +41,12 @@ def test_get_cloud_info(cloud: YandexDisk, httpx_mock: HTTPXMock):
         match_headers={"Authorization": "1234"},
         status_code=httpx.codes.OK
     )
-
     cloud_info = cloud.get_cloud_info()
     assert cloud_info["login"] == "test_user" and cloud_info["name"] == "Test User" and cloud_info[
         "total_space"] == 1024 and cloud_info["used_space"] == 512
 
 
-def test_get_folder_content_ok(cloud, httpx_mock):
+def test_get_folder_content_ok(cloud: YandexDisk, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=f"{cloud.url}resources?path=%2F&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
@@ -64,7 +62,6 @@ def test_get_folder_content_ok(cloud, httpx_mock):
         match_headers={"Authorization": "1234"},
         status_code=httpx.codes.OK
     )
-
     folder_content = cloud.get_folder_content("/")
     assert ["folder1"] == folder_content["folders"] and ["file1.txt"] == folder_content["files"]
 
@@ -78,5 +75,20 @@ def test_get_folder_content_fail_remote_no_path(cloud: YandexDisk, httpx_mock: H
         status_code=httpx.codes.NOT_FOUND
     )
     with pytest.raises(Exception) as e_info:
-        cloud.get_folder_content("/")
+        cloud.get_folder_content("/abracad")
     assert e_info.value.args[0] == 'DiskNotFoundError. Не удалось найти запрошенный ресурс.'
+
+
+def test_get_folder_content_fail_remote_not_folder(cloud: YandexDisk, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=folder%2Ffile.docx&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        method="GET",
+        json={
+            "type": "file",
+        },
+        match_headers={"Authorization": "1234"},
+        status_code=httpx.codes.OK
+    )
+    with pytest.raises(Exception) as e_info:
+        cloud.get_folder_content("folder/file.docx")
+    assert e_info.value.args[0] == 'NotAFolder. Запрошенный ресурс не является папкой'
