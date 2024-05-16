@@ -8,8 +8,7 @@ from yandex_disk_api_client import YandexDisk
 def cloud(httpx_mock: HTTPXMock):
     httpx_mock.add_response(
         url=f"https://cloud-api.yandex.net/v1/disk/",
-        method="GET",
-        match_headers={"Authorization": "1234"}
+        method="GET"
     )
     return YandexDisk(auth_token="1234")
 
@@ -36,8 +35,7 @@ def test_get_cloud_info(cloud: YandexDisk, httpx_mock: HTTPXMock):
             },
             "total_space": 1024 * 2 ** 20,
             "used_space": 512 * 2 ** 20
-        },
-        match_headers={"Authorization": "1234"}
+        }
     )
     cloud_info = cloud.get_cloud_info()
     assert cloud_info["login"] == "test_user" and cloud_info["name"] == "Test User" and cloud_info[
@@ -56,8 +54,7 @@ def test_get_folder_content_ok(cloud: YandexDisk, httpx_mock: HTTPXMock):
                     {"name": "file1.txt", "type": "file"}
                 ]
             }
-        },
-        match_headers={"Authorization": "1234"}
+        }
     )
     folder_content = cloud.get_folder_content("/")
     assert ["folder1"] == folder_content["folders"] and ["file1.txt"] == folder_content["files"]
@@ -68,7 +65,6 @@ def test_get_folder_content_fail_remote(cloud: YandexDisk, httpx_mock: HTTPXMock
         url=f"{cloud.url}resources?path=%2Fabracad&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
         json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
-        match_headers={"Authorization": "1234"},
         status_code=httpx.codes.NOT_FOUND
     )
     with pytest.raises(Exception) as e_info:
@@ -82,8 +78,7 @@ def test_get_folder_content_fail_remote_not_folder(cloud: YandexDisk, httpx_mock
         method="GET",
         json={
             "type": "file",
-        },
-        match_headers={"Authorization": "1234"}
+        }
     )
     with pytest.raises(Exception) as e_info:
         cloud.get_folder_content("folder/file.docx")
@@ -94,18 +89,17 @@ def test_download_file_ok(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
     httpx_mock.add_response(
         url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffile.txt&fields=href",
         method="GET",
-        match_headers={"Authorization": "1234"},
         json={"href": "https://download.example.com/file.txt"}
     )
     httpx_mock.add_response(
         url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffile.txt&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
-        match_headers={"Authorization": "1234"},
         json={"type": "file"}
     )
     httpx_mock.add_response(
         url="https://download.example.com/file.txt",
-        content=b"Hello, World!"
+        content=b"Hello, World!",
+        method="GET"
     )
     local_path = tmp_path / "file.txt"
     result = cloud.download_file("/path/to/file.txt", str(local_path))
@@ -116,7 +110,6 @@ def test_download_file_fail_remote(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp
     httpx_mock.add_response(
         url=f"{cloud.url}resources/download?path=folder%2Ffile123.docx&fields=href",
         method="GET",
-        match_headers={"Authorization": "1234"},
         json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
         status_code=httpx.codes.NOT_FOUND)
     local_path = tmp_path / "file.txt"
@@ -129,20 +122,65 @@ def test_download_file_fail_local(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_
     httpx_mock.add_response(
         url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffile.txt&fields=href",
         method="GET",
-        match_headers={"Authorization": "1234"},
         json={"href": "https://download.example.com/file.txt"}
     )
     httpx_mock.add_response(
         url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffile.txt&fields=type%2C_embedded.items.name%2C_embedded.items.type",
         method="GET",
-        match_headers={"Authorization": "1234"},
         json={"type": "file"}
     )
     httpx_mock.add_response(
         url="https://download.example.com/file.txt",
-        content=b"Hello, World!"
+        content=b"Hello, World!",
+        method="GET"
     )
     local_path = tmp_path / "abracad" / "file.txt"
     with pytest.raises(Exception) as e_info:
         cloud.download_file("/path/to/file.txt", str(local_path))
     assert e_info.value.args[0] == f'FileNotFoundError. Неверный путь: {str(local_path)}'
+
+
+def test_upload_file_ok(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    local_path = tmp_path / "file.txt"
+    local_path.write_bytes(b"Hello, World!")
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/upload?path=%2Fpath%2Fto%2Ffile.txt&fields=href&overwrite=true",
+        json={"href": "https://upload.example.com/file.txt"},
+        method="GET"
+    )
+    httpx_mock.add_response(
+        url="https://upload.example.com/file.txt",
+        status_code=httpx.codes.CREATED,
+
+    )
+    result = cloud.upload_file(str(local_path), "/path/to/file.txt")
+    assert result["status"] == "ok"
+
+
+def test_upload_file_fail_local(cloud: YandexDisk, tmpdir):
+    folder_path = tmpdir.mkdir("test_folder")
+    with pytest.raises(Exception) as e_info:
+        cloud.upload_file(str(folder_path), "/path/to/file.txt")
+    assert e_info.value.args[0] == 'NotAFile. Загружаемый ресурс не является файлом'
+
+
+def test_create_folder_ok(cloud: YandexDisk, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffolder",
+        method="PUT",
+        status_code=httpx.codes.CREATED
+    )
+    result = cloud.create_folder("/path/to/folder")
+    assert result["status"] == "ok"
+
+
+def test_create_folder_fail(cloud: YandexDisk, httpx_mock: HTTPXMock):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffolder",
+        method="PUT",
+        json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
+        status_code=httpx.codes.NOT_FOUND
+    )
+    with pytest.raises(Exception) as e_info:
+        cloud.create_folder("/path/to/folder")
+    assert e_info.value.args[0] == 'DiskNotFoundError. Не удалось найти запрошенный ресурс.'

@@ -87,12 +87,6 @@ class YandexDisk(Cloud):
             return {"status": "ok"}
         return self.error_worker(r.json())
 
-    # just for unit tests
-    def delete_folder(self, path: str) -> None:
-        httpx.delete(f"{self.url}resources", headers={"Authorization": getenv("DEV_AUTH_TOKEN_YANDEX")},
-                     params={"path": path, "force_async": True,
-                             "permanently": True})
-
     @staticmethod
     def error_worker(response: dict):
         with SystemClass.except_handler(SystemClass.exchandler):
