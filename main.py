@@ -1,5 +1,4 @@
 from cloud_boss import CloudBoss
-from os import getenv
 import click
 
 
@@ -10,8 +9,8 @@ def cli(ctx):
 
 
 @cli.command()
-@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
-              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
 def info(ctx, cloud: str):
     """Получить информацию об облаке."""
@@ -22,9 +21,9 @@ def info(ctx, cloud: str):
 
 
 @cli.command()
-@click.argument('path', default=lambda: getenv('DEFAULT_PATH_YANDEX'))
-@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
-              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.argument('path', default="/")
+@click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
 def folder_content(ctx, path: str, cloud: str):
     """Получить содержимое папки в облаке."""
@@ -36,8 +35,8 @@ def folder_content(ctx, path: str, cloud: str):
 
 @cli.command()
 @click.argument('path')
-@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
-              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
 def create_folder(ctx, path: str, cloud: str):
     """Создать папку в облаке."""
@@ -48,8 +47,8 @@ def create_folder(ctx, path: str, cloud: str):
 
 
 @cli.command()
-@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
-              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.argument('path_remote')
 @click.argument('path_local')
 @click.pass_context
@@ -62,8 +61,8 @@ def download(ctx, path_remote: str, path_local: str, cloud: str):
 
 
 @cli.command()
-@click.option('--cloud', type=click.Choice(['yandex', 'google'], case_sensitive=False),
-              prompt='Выберите облако (Yandex/Google)', help='Выбор облака')
+@click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
+              prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.argument('path_local')
 @click.argument('path_remote')
 @click.pass_context
