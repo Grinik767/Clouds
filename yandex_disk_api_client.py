@@ -12,17 +12,15 @@ class YandexDisk(Cloud):
 
     def auth(self, auth_token: str) -> None:
         r = httpx.get(self.url, headers={"Authorization": auth_token})
-        if r.status_code == 200:
-            self.session = httpx.Client()
-            self.session.headers = {"Authorization": auth_token}
-            return
-        self.error_worker(
-            {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
+        if r.status_code != httpx.codes.OK:
+            self.error_worker(
+                {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
+        self.session = httpx.Client(headers={"Authorization": auth_token})
 
     def get_cloud_info(self) -> dict:
         with self.session:
             r = self.session.get(self.url, params={"fields": "user.login,user.display_name,total_space,used_space"})
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(r.json())
         answer = r.json()
         return {"login": answer["user"]["login"], "name": answer["user"]["display_name"],
@@ -34,7 +32,7 @@ class YandexDisk(Cloud):
             r = self.session.get(f"{self.url}resources",
                                  params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(answer)
         if answer["type"] != "dir":
             return self.error_worker({"error": "NotAFolder", "message": "Запрошенный ресурс не является папкой"})
@@ -50,14 +48,14 @@ class YandexDisk(Cloud):
     def download_file(self, path_remote: str, path_local: str) -> dict:
         with self.session:
             r = self.session.get(f"{self.url}resources/download", params={"path": path_remote, "fields": "href"})
-            if r.status_code != 200:
+            if r.status_code != httpx.codes.OK:
                 return self.error_worker(r.json())
             r_type = self.session.get(f"{self.url}resources", params={"path": path_remote,
                                                                       "fields": "type,_embedded.items.name,_embedded.items.type"})
         if r_type.json()["type"] != "file":
             return self.error_worker({"error": "NotAFile", "message": "Запрошенный ресурс не является файлом"})
         response = httpx.get(r.json()["href"], follow_redirects=True)
-        if response.status_code != 200:
+        if response.status_code != httpx.codes.OK:
             return self.error_worker(
                 {"error": "FileDownloadError", "message": f"Не возможно скачать файл {path_remote}"})
         try:
@@ -74,26 +72,20 @@ class YandexDisk(Cloud):
         with self.session:
             r = self.session.get(f"{self.url}resources/upload",
                                  params={"path": path_remote, "fields": "href", "overwrite": True})
-            if r.status_code != 200:
+            if r.status_code != httpx.codes.OK:
                 return self.error_worker(r.json())
             with open(path.abspath(path_local), 'rb') as data:
                 r = self.session.put(r.json()["href"], content=data)
-            if r.status_code == 201:
-                return {"status": "ok"}
-            return self.error_worker(r.json())
+        if r.status_code == httpx.codes.CREATED:
+            return {"status": "ok"}
+        return self.error_worker(r.json())
 
     def create_folder(self, path: str) -> dict:
         with self.session:
             r = self.session.put(f"{self.url}resources", params={"path": path})
-        if r.status_code == 201:
+        if r.status_code == httpx.codes.CREATED:
             return {"status": "ok"}
         return self.error_worker(r.json())
-
-    # just for unit tests
-    def delete_folder(self, path: str) -> None:
-        httpx.delete(f"{self.url}resources", headers={"Authorization": getenv("DEV_AUTH_TOKEN_YANDEX")},
-                     params={"path": path, "force_async": True,
-                             "permanently": True})
 
     @staticmethod
     def error_worker(response: dict):
