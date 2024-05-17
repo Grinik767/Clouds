@@ -25,12 +25,12 @@ class Dropbox(Cloud):
     def get_cloud_info(self) -> dict:
         r = self.session.post(f"{self.url}users/get_space_usage",
                               headers={"Authorization": f"Bearer {self.auth_token}"})
-        if r.status_code != httpx.codes.OK:
-            return self.error_worker(r.json())
+        if r.status_code != 200:
+            return self.add_error(r)
         used_space = r.json()["used"]
         r = httpx.post(f"{self.url}users/get_current_account", headers={"Authorization": f"Bearer {self.auth_token}"})
         if r.status_code != httpx.codes.OK:
-            return self.error_worker(r.json())
+            return self.add_error(r)
         usage_info = r.json()
         return {
             "name": usage_info["name"]["display_name"],
@@ -57,8 +57,8 @@ class Dropbox(Cloud):
                               json={"path": f"{path}", "recursive": False, "include_media_info": False,
                                     "include_deleted": False, "include_has_explicit_shared_members": False
                                     }, headers=headers)
-        if r.status_code != httpx.codes.OK:
-            return self.error_worker(r.json())
+        if r.status_code != 200:
+            return self.add_error(r)
 
         content_info = r.json()
         files = [entry["name"] for entry in content_info["entries"] if
@@ -79,7 +79,7 @@ class Dropbox(Cloud):
             if r.status_code == 404:
                 return self.error_worker(
                     {"error": {".tag": "NotFoundError"}, "error_summary": "Не удалось найти запрошенный ресурс."})
-            return self.error_worker(r.json())
+            return self.add_error(r)
         try:
             with open(path.abspath(path_local), 'wb') as file:
                 file.write(r.content)
@@ -110,7 +110,7 @@ class Dropbox(Cloud):
                 }
                 r = self.session.post("https://content.dropboxapi.com/2/files/upload", headers=headers, files=files)
                 if r.status_code != 200:
-                    return self.error_worker(r.json())
+                    return self.add_error(r)
         except FileNotFoundError:
             return self.error_worker({
                 "error": {".tag": "FileNotFoundError"},
@@ -120,7 +120,7 @@ class Dropbox(Cloud):
         if r.status_code == 200:
             return {"status": "ok"}
         else:
-            return self.error_worker(r.json())
+            return self.add_error(r)
 
     def create_folder(self, path: str) -> dict:
         data = {"path": f"{path}", "autorename": False}
@@ -135,12 +135,19 @@ class Dropbox(Cloud):
             if r.status_code == 409:
                 return self.error_worker({"error": {".tag": "FolderConflictError"},
                                           "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
-            return self.error_worker(r.json())
+            return self.add_error(r)
 
     @staticmethod
     def error_worker(response: dict):
         with SystemClass.except_handler(SystemClass.exchandler):
             raise Exception(f"{response['error']['.tag']}. {response['error_summary']}")
+
+    @staticmethod
+    def add_error(response: httpx.Response):
+        try:
+            return Dropbox.error_worker(response.json())
+        except json.JSONDecodeError:
+            return Dropbox.error_worker({"error": {".tag": "Error"}, "error_summary": f"{response.status_code}"})
 
 
 if __name__ == '__main__':

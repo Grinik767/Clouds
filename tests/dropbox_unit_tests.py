@@ -44,7 +44,7 @@ def test_get_cloud_info(cloud: Dropbox, httpx_mock: HTTPXMock):
         }
     )
     cloud_info = cloud.get_cloud_info()
-    assert cloud_info["name"] == "Test User" and cloud_info["email"] == "test_user@example.com" and cloud_info[
+    assert cloud_info["name"] == "Test User" and cloud_info["login"] == "test_user@example.com" and cloud_info[
         "used_space"]
 
 
