@@ -45,7 +45,7 @@ class Dropbox(Cloud):
                    "Content-Type": "application/json"}
         r = self.session.post(f"{self.url}files/get_metadata", headers=headers,
                               json={"include_deleted": False, "include_has_explicit_shared_members": False,
-                                    "include_media_info": False, "path": path
+                                    "include_media_info": False, "path": f"/{path}"
                                     })
         if r.status_code != httpx.codes.OK:
             return self.error_worker(
@@ -55,7 +55,7 @@ class Dropbox(Cloud):
                 {"error": {".tag": "NotAFolderError"}, "error_summary": "Запрошенный ресурс не является папкой"})
 
         r = self.session.post(f"{self.url}files/list_folder",
-                              json={"path": path, "recursive": False, "include_media_info": False,
+                              json={"path": f"/{path}", "recursive": False, "include_media_info": False,
                                     "include_deleted": False, "include_has_explicit_shared_members": False
                                     }, headers=headers)
         if r.status_code != httpx.codes.OK:
@@ -69,7 +69,7 @@ class Dropbox(Cloud):
         return {"folders": folders, "files": files}
 
     def download_file(self, path_remote: str, path_local: str) -> dict:
-        dropbox_api_arg = json.dumps({"path": path_remote})
+        dropbox_api_arg = json.dumps({"path": f"/{path_remote}"})
 
         headers = {
             "Authorization": f"Bearer {self.auth_token}",
@@ -93,7 +93,7 @@ class Dropbox(Cloud):
 
     def upload_file(self, path_local: str, path_remote: str) -> dict:
         data = {
-            "path": path_remote,
+            "path": f"/{path_remote}",
             "mode": "add",
             "autorename": True,
             "mute": False
@@ -124,7 +124,7 @@ class Dropbox(Cloud):
             return self.error_worker(r.json())
 
     def create_folder(self, path: str) -> dict:
-        data = {"path": path, "autorename": False}
+        data = {"path": f"/{path}", "autorename": False}
         headers = {
             "Authorization": f"Bearer {self.auth_token}",
             "Content-Type": "application/json"
@@ -135,7 +135,8 @@ class Dropbox(Cloud):
             return {"status": "ok"}
         else:
             if r.status_code == 409:
-                return self.error_worker({"error": {".tag": "FolderConflictError"}, "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
+                return self.error_worker({"error": {".tag": "FolderConflictError"},
+                                          "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
             return self.error_worker(r.json())
 
     @staticmethod
@@ -145,4 +146,5 @@ class Dropbox(Cloud):
 
 
 if __name__ == '__main__':
-    driver = Dropbox("")
+    driver = Dropbox(
+        "sl.B1a2cvLMkxcsgCjTN1teQdIvgG4zV0CH0o9tdMagRnxwhfsJlchMp87HGTaox3xKW52vsYtnzANEq6tBekyDO-j0bZ8LFhgFa7RN0YIocZS_akcgoezdf2C7t2nkxKl83V1aRqJNCNzf_phS3yGllXw")
