@@ -1,7 +1,10 @@
-from api_client import Cloud
-from system_class import SystemClass
 from os import path
+
 import httpx
+
+from system_class import SystemClass
+
+from .api_client import Cloud
 
 
 class YandexDisk(Cloud):

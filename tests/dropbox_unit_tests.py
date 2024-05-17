@@ -1,7 +1,8 @@
-import pytest
 import httpx
+import pytest
 from pytest_httpx import HTTPXMock
-from dropbox_api_client import Dropbox
+
+from api_clients.dropbox import Dropbox
 
 
 @pytest.fixture

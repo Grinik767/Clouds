@@ -1,8 +1,9 @@
 import os
-from typing import Callable
-from dotenv import load_dotenv
 import sys
 from contextlib import contextmanager
+from typing import Callable
+
+from dotenv import load_dotenv
 
 
 class SystemClass:
