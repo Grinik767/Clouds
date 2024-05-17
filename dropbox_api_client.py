@@ -1,7 +1,7 @@
 import json
 
 import httpx
-from os import path, getenv
+from os import path
 from system_class import SystemClass
 from api_client import Cloud
 
@@ -146,5 +146,4 @@ class Dropbox(Cloud):
 
 
 if __name__ == '__main__':
-    driver = Dropbox(
-        "")
+    pass

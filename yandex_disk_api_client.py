@@ -1,6 +1,6 @@
 from api_client import Cloud
 from system_class import SystemClass
-from os import path, getenv
+from os import path
 import httpx
 
 

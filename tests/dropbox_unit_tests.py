@@ -1,5 +1,3 @@
-from unittest.mock import patch
-
 import pytest
 import httpx
 from pytest_httpx import HTTPXMock
@@ -158,7 +156,7 @@ def test_upload_file_fail_local(cloud: Dropbox, tmpdir):
     assert e_info.value.args[0] == 'NotAFileError. Загружаемый ресурс не является файлом'
 
 
-def test_upload_file_fail_local(cloud, tmpdir):
+def test_upload_file_fail_local_not_exist_file(cloud, tmpdir):
     non_existent_file = tmpdir.join("non_existent_file.txt")
 
     with pytest.raises(Exception) as e_info:
