@@ -1,6 +1,7 @@
 import click
 from system_class import SystemClass
 from api_clients.yandex_disk import YandexDisk
+from api_clients.dropbox import Dropbox
 from os import getenv
 import httpx
 
@@ -8,7 +9,8 @@ import httpx
 class CloudBoss:
     def __init__(self):
         SystemClass.load_env(dev=False)
-        self.clouds = {"yandex": YandexDisk(getenv("AUTH_TOKEN_YANDEX"))}
+        self.clouds = {"yandex": YandexDisk(getenv("AUTH_TOKEN_YANDEX")),
+                       "dropbox": Dropbox(getenv("AUTH_TOKEN_DROPBOX"))}
 
     def get_cloud_info(self, cloud_name: str):
         try:

@@ -15,10 +15,7 @@ def cli(ctx):
 @click.pass_context
 def info(ctx, cloud: str):
     """Получить информацию об облаке."""
-    if cloud == "yandex":
-        ctx.obj.get_cloud_info(cloud)
-    else:
-        pass
+    ctx.obj.get_cloud_info(cloud)
 
 
 @cli.command()
@@ -28,10 +25,7 @@ def info(ctx, cloud: str):
 @click.pass_context
 def folder_content(ctx, path: str, cloud: str):
     """Получить содержимое папки в облаке."""
-    if cloud == "yandex":
-        ctx.obj.get_folder_content(cloud, path)
-    else:
-        pass
+    ctx.obj.get_folder_content(cloud, path)
 
 
 @cli.command()
@@ -41,11 +35,7 @@ def folder_content(ctx, path: str, cloud: str):
 @click.pass_context
 def create_folder(ctx, path: str, cloud: str):
     """Создать папку в облаке."""
-    if cloud == "yandex":
-        ctx.obj.create_folder(cloud, path)
-    else:
-        pass
-
+    ctx.obj.create_folder(cloud, path)
 
 @cli.command()
 @click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
@@ -55,10 +45,7 @@ def create_folder(ctx, path: str, cloud: str):
 @click.pass_context
 def download(ctx, path_remote: str, path_local: str, cloud: str):
     """Скачать файл/папку из облака."""
-    if cloud == "yandex":
-        ctx.obj.download(cloud, path_remote, path_local)
-    else:
-        pass
+    ctx.obj.download(cloud, path_remote, path_local)
 
 
 @cli.command()
@@ -69,10 +56,7 @@ def download(ctx, path_remote: str, path_local: str, cloud: str):
 @click.pass_context
 def upload(ctx, path_local: str, path_remote: str, cloud: str):
     """Загрузить файл/папку в облако."""
-    if cloud == "yandex":
-        ctx.obj.upload(cloud, path_local, path_remote)
-    else:
-        pass
+    ctx.obj.upload(cloud, path_local, path_remote)
 
 
 if __name__ == '__main__':
