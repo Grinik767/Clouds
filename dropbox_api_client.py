@@ -20,7 +20,8 @@ class Dropbox(Cloud):
             self.session.headers = {"Authorization": auth_token}
             return
         self.error_worker(
-            {"error": {".tag": "AuthError"}, "error_summary": "Ошибка авторизации в Dropbox. Проверьте/обновите данные"})
+            {"error": {".tag": "AuthError"},
+             "error_summary": "Ошибка авторизации в Dropbox. Проверьте/обновите данные"})
 
     def get_cloud_info(self) -> dict:
         r = self.session.post(f"{self.url}users/get_space_usage",
@@ -47,10 +48,11 @@ class Dropbox(Cloud):
                                     "include_media_info": False, "path": path
                                     })
         if r.status_code != httpx.codes.OK:
-            return self.error_worker(r.json())
+            return self.error_worker(
+                {"error": {".tag": "NotFoundError"}, "error_summary": "Не удалось найти запрошенный ресурс."})
         if r.json()['.tag'] != "folder":
             return self.error_worker(
-                {"error": {".tag": "NotAFolder"}, "error_summary": "Запрошенный ресурс не является папкой"})
+                {"error": {".tag": "NotAFolderError"}, "error_summary": "Запрошенный ресурс не является папкой"})
 
         r = self.session.post(f"{self.url}files/list_folder",
                               json={"path": path, "recursive": False, "include_media_info": False,
@@ -75,10 +77,12 @@ class Dropbox(Cloud):
         }
         r = self.session.post(f"https://content.dropboxapi.com/2/files/download", headers=headers)
         if r.status_code != 200:
+            if r.status_code == 404:
+                return self.error_worker(
+                    {"error": {".tag": "NotFoundError"}, "error_summary": "Не удалось найти запрошенный ресурс."})
             return self.error_worker(r.json())
         try:
             with open(path.abspath(path_local), 'wb') as file:
-                print(r.content)
                 file.write(r.content)
             return {"status": "ok"}
         except FileNotFoundError:
@@ -95,6 +99,9 @@ class Dropbox(Cloud):
             "mute": False
         }
         try:
+            if not path.isfile(path_local):
+                return self.error_worker(
+                    {"error": {".tag": "NotAFileError"}, "error_summary": "Загружаемый ресурс не является файлом"})
             with open(path_local, "rb") as f:
                 files = {"file": f}
                 headers = {
@@ -127,6 +134,8 @@ class Dropbox(Cloud):
         if r.status_code == 200:
             return {"status": "ok"}
         else:
+            if r.status_code == 409:
+                return self.error_worker({"error": {".tag": "FolderConflictError"}, "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
             return self.error_worker(r.json())
 
     @staticmethod

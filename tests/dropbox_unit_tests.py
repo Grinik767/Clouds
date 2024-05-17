@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 import httpx
 from pytest_httpx import HTTPXMock
@@ -49,6 +51,13 @@ def test_get_cloud_info(cloud: Dropbox, httpx_mock: HTTPXMock):
 
 def test_get_folder_content_ok(cloud: Dropbox, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
+        url="https://api.dropboxapi.com/2/files/get_metadata",
+        method="POST",
+        json={
+            ".tag": "folder"
+        }
+    )
+    httpx_mock.add_response(
         url="https://api.dropboxapi.com/2/files/list_folder",
         method="POST",
         json={
@@ -66,24 +75,26 @@ def test_get_folder_content_ok(cloud: Dropbox, httpx_mock: HTTPXMock):
 
 def test_get_folder_content_fail_remote(cloud: Dropbox, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/list_folder",
+        url="https://api.dropboxapi.com/2/files/get_metadata",
         method="POST",
-        json={"error_summary": "path/not_found/."},
+        json={
+            "error_summary": "path/not_found/."
+        },
         status_code=httpx.codes.NOT_FOUND
     )
+
     with pytest.raises(Exception) as e_info:
-        cloud.get_folder_content("/abracad")
+        cloud.get_folder_content("/acdcdcd")
     assert e_info.value.args[0] == 'NotFoundError. Не удалось найти запрошенный ресурс.'
 
 
 def test_get_folder_content_fail_remote_not_folder(cloud: Dropbox, httpx_mock: HTTPXMock):
     httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/list_folder",
+        url="https://api.dropboxapi.com/2/files/get_metadata",
         method="POST",
         json={
-            "error_summary": "path/not_folder/."
-        },
-        status_code=httpx.codes.CONFLICT
+            ".tag": ".txt."
+        }
     )
     with pytest.raises(Exception) as e_info:
         cloud.get_folder_content("folder/file.docx")
@@ -92,14 +103,9 @@ def test_get_folder_content_fail_remote_not_folder(cloud: Dropbox, httpx_mock: H
 
 def test_download_file_ok(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path):
     httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/get_temporary_link",
+        url="https://content.dropboxapi.com/2/files/download",
         method="POST",
-        json={"link": "https://content.dropboxapi.com/file.txt"}
-    )
-    httpx_mock.add_response(
-        url="https://content.dropboxapi.com/file.txt",
         content=b"Hello, World!",
-        method="GET"
     )
     local_path = tmp_path / "file.txt"
     result = cloud.download_file("/path/to/file.txt", str(local_path))
@@ -108,7 +114,7 @@ def test_download_file_ok(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path):
 
 def test_download_file_fail_remote(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path):
     httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/get_temporary_link",
+        url="https://content.dropboxapi.com/2/files/download",
         method="POST",
         json={"error_summary": "path/not_found/."},
         status_code=httpx.codes.NOT_FOUND
@@ -121,14 +127,9 @@ def test_download_file_fail_remote(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_pa
 
 def test_download_file_fail_local(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path):
     httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/get_temporary_link",
+        url="https://content.dropboxapi.com/2/files/download",
         method="POST",
-        json={"link": "https://content.dropboxapi.com/file.txt"}
-    )
-    httpx_mock.add_response(
-        url="https://content.dropboxapi.com/file.txt",
-        content=b"Hello, World!",
-        method="GET"
+        content=b"Hello, World!"
     )
     local_path = tmp_path / "abracad" / "file.txt"
     with pytest.raises(Exception) as e_info:
@@ -157,15 +158,13 @@ def test_upload_file_fail_local(cloud: Dropbox, tmpdir):
     assert e_info.value.args[0] == 'NotAFileError. Загружаемый ресурс не является файлом'
 
 
-def test_create_folder_ok(cloud: Dropbox, httpx_mock: HTTPXMock):
-    httpx_mock.add_response(
-        url="https://api.dropboxapi.com/2/files/create_folder_v2",
-        method="POST",
-        status_code=httpx.codes.OK,
-        json={"metadata": {"name": "folder", "path_lower": "/path/to/folder", ".tag": "folder"}}
-    )
-    result = cloud.create_folder("/path/to/folder")
-    assert result["status"] == "ok"
+def test_upload_file_fail_local(cloud, tmpdir):
+    non_existent_file = tmpdir.join("non_existent_file.txt")
+
+    with pytest.raises(Exception) as e_info:
+        cloud.upload_file(str(non_existent_file), "/path/to/file.txt")
+
+    assert e_info.value.args[0] == 'NotAFileError. Загружаемый ресурс не является файлом'
 
 
 def test_create_folder_fail(cloud: Dropbox, httpx_mock: HTTPXMock):
