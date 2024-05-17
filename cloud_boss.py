@@ -1,6 +1,6 @@
 import click
 from system_class import SystemClass
-from yandex_disk_api_client import YandexDisk
+from api_clients.yandex_disk import YandexDisk
 from os import getenv
 import httpx
 

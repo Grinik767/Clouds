@@ -1,5 +1,6 @@
-from cloud_boss import CloudBoss
 import click
+
+from cloud_boss import CloudBoss
 
 
 @click.group()
