@@ -102,13 +102,13 @@ class Dropbox(Cloud):
                 return self.error_worker(
                     {"error": {".tag": "NotAFileError"}, "error_summary": "Загружаемый ресурс не является файлом"})
             with open(path_local, "rb") as f:
-                files = {"file": f}
                 headers = {
                     "Authorization": f"Bearer {self.auth_token}",
                     "Dropbox-API-Arg": json.dumps(data),
                     "Content-Type": "application/octet-stream"
                 }
-                r = self.session.post("https://content.dropboxapi.com/2/files/upload", headers=headers, files=files)
+                r = self.session.post("https://content.dropboxapi.com/2/files/upload", headers=headers,
+                                      content=f.read())
                 if r.status_code != 200:
                     return self.add_error(r)
         except FileNotFoundError:
