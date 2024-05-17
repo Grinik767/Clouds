@@ -15,21 +15,21 @@ class Dropbox(Cloud):
 
     def auth(self, auth_token: str) -> None:
         r = httpx.post(f"{self.url}users/get_current_account", headers={"Authorization": f"Bearer {auth_token}"})
-        if r.status_code == 200:
+        if r.status_code == httpx.codes.OK:
             self.session = httpx.Client()
             self.session.headers = {"Authorization": auth_token}
             return
         self.error_worker(
-            {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
+            {"error": {".tag": "AuthError"}, "message": "Ошибка авторизации в Dropbox. Проверьте/обновите данные"})
 
     def get_cloud_info(self) -> dict:
         r = self.session.post(f"{self.url}users/get_space_usage",
                               headers={"Authorization": f"Bearer {self.auth_token}"})
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(r.json())
         used_space = r.json()["used"]
         r = httpx.post(f"{self.url}users/get_current_account", headers={"Authorization": f"Bearer {self.auth_token}"})
-        if r.status_code != 200:
+        if r.status_code != httpx.codes.OK:
             return self.error_worker(r.json())
         usage_info = r.json()
         return {
@@ -127,10 +127,9 @@ class Dropbox(Cloud):
     @staticmethod
     def error_worker(response: dict):
         with SystemClass.except_handler(SystemClass.exchandler):
+            print(response)
             raise Exception(f"{response['error']['.tag']}. {response['message']}")
 
 
 if __name__ == '__main__':
-    driver = Dropbox(
-        "")
-
+    pass
