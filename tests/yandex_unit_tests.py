@@ -1,7 +1,8 @@
-import pytest
 import httpx
+import pytest
 from pytest_httpx import HTTPXMock
-from yandex_disk_api_client import YandexDisk
+
+from api_clients.yandex_disk import YandexDisk
 
 
 @pytest.fixture
