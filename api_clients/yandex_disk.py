@@ -1,10 +1,11 @@
+import os
 from os import path
 
 import httpx
 
 from system_class import SystemClass
 
-from .api_client import Cloud
+from api_client import Cloud
 
 
 class YandexDisk(Cloud):
@@ -97,4 +98,6 @@ class YandexDisk(Cloud):
 
 
 if __name__ == '__main__':
-    pass
+    SystemClass.load_env()
+    cloud = YandexDisk(os.getenv("AUTH_TOKEN_YANDEX"))
+    print(cloud.get_cloud_info())
