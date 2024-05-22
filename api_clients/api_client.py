@@ -24,7 +24,7 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    async def download_folder(self):
+    async def download_folder(self, path_remote: str, path_local: str) -> dict:
         pass
 
     async def upload_folder(self, path_local: str, path_remote: str) -> dict:

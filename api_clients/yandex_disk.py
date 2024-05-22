@@ -6,7 +6,7 @@ import httpx
 
 from system_class import SystemClass
 
-from api_client import Cloud
+from .api_client import Cloud
 
 
 class YandexDisk(Cloud):
@@ -65,6 +65,9 @@ class YandexDisk(Cloud):
         if response.is_error:
             return self.error_worker(
                 {"error": "FileDownloadError", "message": f"Не возможно скачать файл {path_remote}"})
+        if path.isdir(path.abspath(path_local)):
+            return self.error_worker(
+                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
         try:
             async with aiofiles.open(path.abspath(path_local), 'wb') as file:
                 await file.write(response.content)
@@ -74,7 +77,7 @@ class YandexDisk(Cloud):
                 {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
 
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
-        if not path.isfile(path_local):
+        if path.isdir(path_local):
             return self.error_worker({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"})
         async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources/upload",
@@ -95,7 +98,7 @@ class YandexDisk(Cloud):
             return self.error_worker(r.json())
         return {"status": "ok"}
 
-    def download_folder(self):
+    async def download_folder(self, path_remote: str, path_local: str) -> dict:
         pass
 
     @staticmethod
