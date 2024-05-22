@@ -52,25 +52,36 @@ class YandexDisk(Cloud):
                 files.append(item["name"])
         return {"folders": folders, "files": files}
 
-    async def download_file(self, path_remote: str, path_local: str) -> dict:
+    async def download(self, path_remote: str, is_file: bool = True) -> bytes:
         async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources/download", params={"path": path_remote, "fields": "href"})
+            answer = r.json()
             if r.is_error:
-                return self.error_worker(r.json())
+                return self.error_worker(answer)
             r_type = await session.get(f"{self.url}resources", params={"path": path_remote,
                                                                        "fields": "type,_embedded.items.name,_embedded.items.type"})
-            if r_type.json()["type"] != "file":
+            resp = r_type.json()
+            if resp["type"] != "file" and is_file:
                 return self.error_worker({"error": "NotAFile", "message": "Запрошенный ресурс не является файлом"})
-            response = await session.get(r.json()["href"], follow_redirects=True)
+            elif resp["type"] == "file" and not is_file:
+                return self.error_worker({"error": "NotAFolder", "message": "Запрошенный ресурс не является папкой"})
+            response = await session.get(answer["href"], follow_redirects=True)
         if response.is_error:
-            return self.error_worker(
-                {"error": "FileDownloadError", "message": f"Не возможно скачать файл {path_remote}"})
+            if is_file:
+                error_msg = ("FileDownloadError", f"Не возможно скачать файл {path_remote}")
+            else:
+                error_msg = ("FolderDownloadError", f"Не возможно скачать папку {path_remote}")
+            return self.error_worker({"error": error_msg[0], "message": f"Не возможно скачать файл {error_msg[1]}"})
+        return response.content
+
+    async def download_file(self, path_remote: str, path_local: str) -> dict:
+        content = await self.download(path_remote)
         if path.isdir(path.abspath(path_local)):
             return self.error_worker(
                 {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
         try:
             async with aiofiles.open(path.abspath(path_local), 'wb') as file:
-                await file.write(response.content)
+                await file.write(content)
             return {"status": "ok"}
         except FileNotFoundError:
             return self.error_worker(
