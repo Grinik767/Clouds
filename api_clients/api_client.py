@@ -7,21 +7,22 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    def get_cloud_info(self):
+    def get_cloud_info(self) -> dict:
         pass
 
     @abstractmethod
-    def get_folder_content(self, path: str):
+    def get_folder_content(self, path: str) -> dict:
         pass
 
     @abstractmethod
-    def download_file(self, path_remote: str, path_local: str):
+    def download_file(self, path_remote: str, path_local: str) -> dict:
         pass
 
     @abstractmethod
-    def upload_file(self, path_local: str, path_remote: str):
+    def upload_file(self, path_local: str, path_remote: str) -> dict:
         pass
 
+    @abstractmethod
     def download_folder(self):
         pass
 
@@ -29,10 +30,10 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    def create_folder(self, path: str):
+    def create_folder(self, path: str) -> dict:
         pass
 
     @staticmethod
     @abstractmethod
-    def error_worker(response: dict) -> dict:
+    def error_worker(response: dict):
         pass

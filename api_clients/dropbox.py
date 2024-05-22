@@ -1,11 +1,15 @@
 import json
 from os import path
+
 import httpx
+
 from system_class import SystemClass
-from api_client import Cloud
+
+from .api_client import Cloud
 
 
 class Dropbox(Cloud):
+
     def __init__(self, auth_token: str) -> None:
         self.session = None
         self.url = "https://api.dropboxapi.com/2/"
@@ -136,6 +140,9 @@ class Dropbox(Cloud):
                 return self.error_worker({"error": {".tag": "FolderConflictError"},
                                           "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
             return self.add_error(r)
+
+    def download_folder(self):
+        pass
 
     @staticmethod
     def error_worker(response: dict):
