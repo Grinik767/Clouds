@@ -1,6 +1,7 @@
 import os
+import zipfile
 from os import path
-import asyncio
+
 import aiofiles
 import httpx
 
@@ -34,10 +35,11 @@ class YandexDisk(Cloud):
                 "total_space": answer["total_space"] / (2 ** 20),
                 "used_space": answer["used_space"] / (2 ** 20)}
 
-    async def get_folder_content(self, path: str) -> dict:
+    async def get_folder_content(self, path_remote: str) -> dict:
         async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources",
-                                  params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
+                                  params={"path": path_remote,
+                                          "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
         if r.is_error:
             return self.error_worker(answer)
@@ -71,21 +73,34 @@ class YandexDisk(Cloud):
                 error_msg = ("FileDownloadError", f"Не возможно скачать файл {path_remote}")
             else:
                 error_msg = ("FolderDownloadError", f"Не возможно скачать папку {path_remote}")
-            return self.error_worker({"error": error_msg[0], "message": f"Не возможно скачать файл {error_msg[1]}"})
+            return self.error_worker({"error": error_msg[0], "message": error_msg[1]})
         return response.content
 
-    async def download_file(self, path_remote: str, path_local: str) -> dict:
-        content = await self.download(path_remote)
-        if path.isdir(path.abspath(path_local)):
-            return self.error_worker(
-                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+    async def save_file(self, path_local: str, content: bytes):
         try:
             async with aiofiles.open(path.abspath(path_local), 'wb') as file:
                 await file.write(content)
-            return {"status": "ok"}
         except FileNotFoundError:
             return self.error_worker(
                 {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+
+    async def download_file(self, path_remote: str, path_local: str) -> dict:
+        if path.isdir(path.abspath(path_local)):
+            return self.error_worker(
+                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+        await self.save_file(path_local, await self.download(path_remote))
+        return {"status": "ok"}
+
+    async def download_folder(self, path_remote: str, path_local: str) -> dict:
+        if path.isfile(path.abspath(path_local)):
+            return self.error_worker(
+                {"error": "FolderNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+        path_to_zip = path.join(path.abspath(path_local), "archive.zip")
+        await self.save_file(path_to_zip, await self.download(path_remote, is_file=False))
+        with zipfile.ZipFile(path_to_zip) as zip_ref:
+            zip_ref.extractall(path_local)
+        os.remove(path_to_zip)
+        return {"status": "ok"}
 
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
         if path.isdir(path_local):
@@ -102,15 +117,12 @@ class YandexDisk(Cloud):
             return self.error_worker(r.json())
         return {"status": "ok"}
 
-    async def create_folder(self, path: str) -> dict:
+    async def create_folder(self, path_remote: str) -> dict:
         async with httpx.AsyncClient(headers=self.headers) as session:
-            r = await session.put(f"{self.url}resources", params={"path": path})
+            r = await session.put(f"{self.url}resources", params={"path": path_remote})
         if r.is_error:
             return self.error_worker(r.json())
         return {"status": "ok"}
-
-    async def download_folder(self, path_remote: str, path_local: str) -> dict:
-        pass
 
     @staticmethod
     def error_worker(response: dict):
@@ -119,6 +131,4 @@ class YandexDisk(Cloud):
 
 
 if __name__ == '__main__':
-    SystemClass.load_env()
-    cloud = YandexDisk(os.getenv("AUTH_TOKEN_YANDEX"))
-    asyncio.run(cloud.upload_folder("C:/Users/grigo/Desktop/Clouds/for_tests", "tests"))
+    pass

@@ -43,12 +43,12 @@ class Dropbox(Cloud):
             "total_space": -1
         }
 
-    def get_folder_content(self, path: str) -> dict:
+    def get_folder_content(self, path_remote: str) -> dict:
         headers = {"Authorization": f"Bearer {self.auth_token}",
                    "Content-Type": "application/json"}
         r = self.session.post(f"{self.url}files/get_metadata", headers=headers,
                               json={"include_deleted": False, "include_has_explicit_shared_members": False,
-                                    "include_media_info": False, "path": f"{path}"
+                                    "include_media_info": False, "path": f"{path_remote}"
                                     })
         if r.status_code != 200:
             return self.error_worker(
@@ -58,7 +58,7 @@ class Dropbox(Cloud):
                 {"error": {".tag": "NotAFolderError"}, "error_summary": "Запрошенный ресурс не является папкой"})
 
         r = self.session.post(f"{self.url}files/list_folder",
-                              json={"path": f"{path}", "recursive": False, "include_media_info": False,
+                              json={"path": f"{path_remote}", "recursive": False, "include_media_info": False,
                                     "include_deleted": False, "include_has_explicit_shared_members": False
                                     }, headers=headers)
         if r.status_code != 200:
@@ -126,8 +126,8 @@ class Dropbox(Cloud):
         else:
             return self.add_error(r)
 
-    def create_folder(self, path: str) -> dict:
-        data = {"path": f"{path}", "autorename": False}
+    def create_folder(self, path_remote: str) -> dict:
+        data = {"path": f"{path_remote}", "autorename": False}
         headers = {
             "Authorization": f"Bearer {self.auth_token}",
             "Content-Type": "application/json"

@@ -12,7 +12,7 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    async def get_folder_content(self, path: str) -> dict:
+    async def get_folder_content(self, path_remote: str) -> dict:
         pass
 
     @abstractmethod
@@ -43,14 +43,14 @@ class Cloud(ABC):
 
         return {"status": "ok"}
 
-    async def try_to_create_folder(self, path: str) -> None:
+    async def try_to_create_folder(self, path_remote: str) -> None:
         try:
-            await self.create_folder(path)
+            await self.create_folder(path_remote)
         except Exception:
             pass
 
     @abstractmethod
-    async def create_folder(self, path: str) -> dict:
+    async def create_folder(self, path_remote: str) -> dict:
         pass
 
     @staticmethod

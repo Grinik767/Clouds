@@ -1,3 +1,6 @@
+import zipfile
+from os import path
+
 import httpx
 import pytest
 from pytest_httpx import HTTPXMock
@@ -196,3 +199,72 @@ async def test_create_folder_fail(cloud: YandexDisk, httpx_mock: HTTPXMock):
     with pytest.raises(Exception) as e_info:
         await cloud.create_folder("/path/to/folder")
     assert e_info.value.args[0] == 'DiskNotFoundError. Не удалось найти запрошенный ресурс.'
+
+
+@pytest.mark.asyncio
+async def test_download_folder_ok(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    zip_file_path = tmp_path / "folder.zip"
+    with zipfile.ZipFile(zip_file_path, 'w') as zip_file:
+        zip_file.writestr("test.txt", "abc")
+
+    with open(zip_file_path, 'rb') as f:
+        zip_content = f.read()
+
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffolder&fields=href",
+        json={"href": "https://download.example.com/folder.zip"}
+    )
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffolder&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        json={"type": "dir"}
+    )
+    httpx_mock.add_response(
+        url="https://download.example.com/folder.zip",
+        content=zip_content
+    )
+
+    local_path = tmp_path / "downloaded_folder"
+    local_path.mkdir()
+
+    result = await cloud.download_folder("/path/to/folder", str(local_path))
+    assert result["status"] == "ok" and path.exists(local_path / "test.txt")
+
+
+@pytest.mark.asyncio
+async def test_download_folder_fail_remote(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Fnonexistent_folder&fields=href",
+        json={"error": "DiskNotFoundError", "message": "Не удалось найти запрошенный ресурс."},
+        status_code=httpx.codes.NOT_FOUND
+    )
+
+    local_path = tmp_path / "downloaded_folder"
+    local_path.mkdir()
+
+    with pytest.raises(Exception) as e_info:
+        await cloud.download_folder("/path/to/nonexistent_folder", str(local_path))
+    assert e_info.value.args[0] == 'DiskNotFoundError. Не удалось найти запрошенный ресурс.'
+
+
+@pytest.mark.asyncio
+async def test_download_folder_fail_remote_finish(cloud: YandexDisk, httpx_mock: HTTPXMock, tmp_path):
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources/download?path=%2Fpath%2Fto%2Ffolder&fields=href",
+        json={"href": "https://download.example.com/folder.zip"}
+    )
+    httpx_mock.add_response(
+        url=f"{cloud.url}resources?path=%2Fpath%2Fto%2Ffolder&fields=type%2C_embedded.items.name%2C_embedded.items.type",
+        json={"type": "dir"}
+    )
+    httpx_mock.add_response(
+        url="https://download.example.com/folder.zip",
+        status_code=404
+    )
+
+    local_path = tmp_path / "downloaded_folder"
+    local_path.mkdir()
+
+    with pytest.raises(Exception) as e_info:
+        await cloud.download_folder("/path/to/folder", str(local_path))
+    assert e_info.value.args[
+               0] == "FolderDownloadError. Не возможно скачать папку /path/to/folder"
