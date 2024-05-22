@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from os import path, walk
 
 
 class Cloud(ABC):
@@ -7,30 +8,49 @@ class Cloud(ABC):
         pass
 
     @abstractmethod
-    def get_cloud_info(self) -> dict:
+    async def get_cloud_info(self) -> dict:
         pass
 
     @abstractmethod
-    def get_folder_content(self, path: str) -> dict:
+    async def get_folder_content(self, path: str) -> dict:
         pass
 
     @abstractmethod
-    def download_file(self, path_remote: str, path_local: str) -> dict:
+    async def download_file(self, path_remote: str, path_local: str) -> dict:
         pass
 
     @abstractmethod
-    def upload_file(self, path_local: str, path_remote: str) -> dict:
+    async def upload_file(self, path_local: str, path_remote: str) -> dict:
         pass
 
     @abstractmethod
-    def download_folder(self):
+    async def download_folder(self):
         pass
 
-    def upload_folder(self):
-        pass
+    async def upload_folder(self, path_local: str, path_remote: str) -> dict:
+        local_path = path.abspath(path_local)
+        await self.try_to_create_folder(path_remote)
+        for root, dirs, files in walk(local_path):
+            for directory in dirs:
+                dir_local = path.join(root, directory)
+                dir_remote = path.join(path_remote, path.relpath(dir_local, local_path)).replace("\\", "/")
+                await self.try_to_create_folder(dir_remote)
+
+            for file in files:
+                file_local = path.join(root, file)
+                file_remote = path.join(path_remote, path.relpath(file_local, local_path)).replace("\\", "/")
+                await self.upload_file(file_local, file_remote)
+
+        return {"status": "ok"}
+
+    async def try_to_create_folder(self, path: str) -> None:
+        try:
+            await self.create_folder(path)
+        except Exception:
+            pass
 
     @abstractmethod
-    def create_folder(self, path: str) -> dict:
+    async def create_folder(self, path: str) -> dict:
         pass
 
     @staticmethod

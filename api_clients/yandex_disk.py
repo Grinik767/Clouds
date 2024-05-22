@@ -1,29 +1,30 @@
+import os
 from os import path
-
+import asyncio
 import aiofiles
 import httpx
 
 from system_class import SystemClass
 
-from .api_client import Cloud
+from api_client import Cloud
 
 
 class YandexDisk(Cloud):
 
     def __init__(self, auth_token: str):
-        self.async_client = None
+        self.headers = None
         self.url = "https://cloud-api.yandex.net/v1/disk/"
         self.auth(auth_token)
 
     def auth(self, auth_token: str) -> None:
         r = httpx.get(self.url, headers={"Authorization": auth_token})
-        if r.status_code != httpx.codes.OK:
+        if r.is_error:
             self.error_worker(
                 {"error": "AuthError", "message": "Ошибка авторизации в Яндекс.Диске. Проверьте/обновите данные"})
-        self.async_client = httpx.AsyncClient(headers={"Authorization": auth_token})
+        self.headers = {"Authorization": auth_token}
 
     async def get_cloud_info(self) -> dict:
-        async with self.async_client as session:
+        async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(self.url,
                                   params={"fields": "user.login,user.display_name,total_space,used_space"})
         answer = r.json()
@@ -34,7 +35,7 @@ class YandexDisk(Cloud):
                 "used_space": answer["used_space"] / (2 ** 20)}
 
     async def get_folder_content(self, path: str) -> dict:
-        async with self.async_client as session:
+        async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources",
                                   params={"path": path, "fields": "type,_embedded.items.name,_embedded.items.type"})
         answer = r.json()
@@ -52,7 +53,7 @@ class YandexDisk(Cloud):
         return {"folders": folders, "files": files}
 
     async def download_file(self, path_remote: str, path_local: str) -> dict:
-        async with self.async_client as session:
+        async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources/download", params={"path": path_remote, "fields": "href"})
             if r.is_error:
                 return self.error_worker(r.json())
@@ -75,7 +76,7 @@ class YandexDisk(Cloud):
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
         if not path.isfile(path_local):
             return self.error_worker({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"})
-        async with self.async_client as session:
+        async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.get(f"{self.url}resources/upload",
                                   params={"path": path_remote, "fields": "href", "overwrite": True})
             answer = r.json()
@@ -88,7 +89,7 @@ class YandexDisk(Cloud):
         return {"status": "ok"}
 
     async def create_folder(self, path: str) -> dict:
-        async with self.async_client as session:
+        async with httpx.AsyncClient(headers=self.headers) as session:
             r = await session.put(f"{self.url}resources", params={"path": path})
         if r.is_error:
             return self.error_worker(r.json())
@@ -104,4 +105,6 @@ class YandexDisk(Cloud):
 
 
 if __name__ == '__main__':
-    pass
+    SystemClass.load_env()
+    cloud = YandexDisk(os.getenv("AUTH_TOKEN_YANDEX"))
+    asyncio.run(cloud.upload_folder("C:/Users/grigo/Desktop/Clouds/for_tests", "tests"))
