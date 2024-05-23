@@ -2,12 +2,14 @@ import asyncio
 from abc import ABC, abstractmethod
 from os import path, walk
 
+import httpx
+
 from system_class import SystemClass
 
 
 class Cloud(ABC):
     @abstractmethod
-    def auth(self, auth_token: str) -> None:
+    def auth(self, auth_token: str) -> httpx.AsyncClient:
         pass
 
     @abstractmethod
