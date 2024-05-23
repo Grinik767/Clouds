@@ -39,24 +39,26 @@ class CloudBoss:
 
     async def download(self, cloud_name: str, path_remote: str, path_local: str):
         try:
-            await self.clouds[cloud_name].download_folder(path_remote, path_local)
-            click.echo("Папка успешно скачана!")
-        except Exception as e:
-            SystemClass.exchandler(type(e), e, e.__traceback__)
+            await self.clouds[cloud_name].download_file(path_remote, path_local)
+            click.echo("Файл успешно скачан!")
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
+        except Exception:
             try:
-                await self.clouds[cloud_name].download_file(path_remote, path_local)
-                click.echo("Файл успешно скачан!")
-            except Exception as e:
-                SystemClass.exchandler(type(e), e, e.__traceback__)
+                await self.clouds[cloud_name].download_folder(path_remote, path_local)
+                click.echo("Папка успешно скачана!")
+            except Exception as e2:
+                SystemClass.exchandler(type(e2), e2, e2.__traceback__)
 
     async def upload(self, cloud_name: str, path_local: str, path_remote: str):
         try:
-            await self.clouds[cloud_name].upload_folder(path_local, path_remote)
-            click.echo("Папка успешно загружена!")
-        except Exception as e:
-            SystemClass.exchandler(type(e), e, e.__traceback__)
+            await self.clouds[cloud_name].upload_file(path_local, path_remote)
+            click.echo("Файл успешно загружен!")
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
+        except Exception:
             try:
-                await self.clouds[cloud_name].upload_file(path_local, path_remote)
-                click.echo("Файл успешно загружен!")
-            except Exception as e:
-                SystemClass.exchandler(type(e), e, e.__traceback__)
+                await self.clouds[cloud_name].upload_folder(path_local, path_remote)
+                click.echo("Папка успешно загружена!")
+            except Exception as e2:
+                SystemClass.exchandler(type(e2), e2, e2.__traceback__)
