@@ -9,7 +9,7 @@ import httpx
 
 from system_class import SystemClass
 
-from api_client import Cloud
+from .api_client import Cloud
 
 
 class Dropbox(Cloud):
@@ -112,14 +112,14 @@ class Dropbox(Cloud):
     async def download_file(self, path_remote: str, path_local: str) -> dict:
         if path.isdir(path.abspath(path_local)):
             return self.error_worker(
-                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+                {"error": {".tag": "FileNotFoundError"}, "error_summary": f"Неверный путь: {path.abspath(path_local)}"})
         await self.save_file(path_local, await self.download(path_remote))
         return {"status": "ok"}
 
     async def download_folder(self, path_remote: str, path_local: str) -> dict:
         if path.isfile(path.abspath(path_local)):
             return self.error_worker(
-                {"error": "FolderNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
+                {"error": {".tag": "FileNotFoundError"}, "error_summary": f"Неверный путь: {path.abspath(path_local)}"})
         path_to_zip = path.join(path.abspath(path_local), "archive.zip")
         await self.save_file(path_to_zip, await self.download(path_remote, is_file=False))
         with zipfile.ZipFile(path_to_zip) as zip_ref:
@@ -133,7 +133,7 @@ class Dropbox(Cloud):
                 await file.write(content)
         except FileNotFoundError:
             return self.error_worker(
-                {"error": {".tag": "FileNotFoundError"}, "message": f"Неверный путь: {path.abspath(path_local)}"})
+                {"error": {".tag": "FileNotFoundError"}, "error_summary": f"Неверный путь: {path.abspath(path_local)}"})
 
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
         async with httpx.AsyncClient(headers=self.headers) as session:
@@ -144,7 +144,7 @@ class Dropbox(Cloud):
                 "mute": False
             }
             try:
-                if path.isdir(path_local):
+                if path.isdir(path.abspath(path_local)):
                     return self.error_worker(
                         {"error": {".tag": "NotAFileError"}, "error_summary": "Загружаемый ресурс не является файлом"})
                 with open(path_local, "rb") as f:
