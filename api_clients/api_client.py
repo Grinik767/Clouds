@@ -1,8 +1,9 @@
 import asyncio
-from abc import ABC, abstractmethod
-from os import path, walk, remove
-import aiofiles
 import zipfile
+from abc import ABC, abstractmethod
+from os import path, remove, walk
+
+import aiofiles
 import httpx
 
 from system_class import SystemClass
