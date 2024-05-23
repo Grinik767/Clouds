@@ -194,7 +194,4 @@ class Dropbox(Cloud):
 
 
 if __name__ == '__main__':
-    a = Dropbox(
-        "sl.B1zE1l9_paJIB_KxXX53QODUAuNMKttAgadXypLQzPmADH2lTv1C3M4uHXlRAblvQJb0cIvs0GmR3d5ZRCEjJuCxqOq50tekl2ch8054m-N-myFhHAtzXQK2u2w6cnqyswDOCTB24w0DmV8DPj0EtGg")
-    loop = asyncio.get_event_loop()
-    print(loop.run_until_complete(a.download_folder("/folder1/123", "C:/Users/Михаил/PycharmProjects/Clouds")))
+    pass
