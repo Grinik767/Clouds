@@ -1,7 +1,10 @@
 import asyncio
 import json
+import os
+import zipfile
 from os import path
 
+import aiofiles
 import httpx
 
 from system_class import SystemClass
@@ -97,6 +100,36 @@ class Dropbox(Cloud):
                     "error_summary": f"Неверный путь: {path.abspath(path_local)}"
                 })
 
+    async def download_folder(self, path_remote: str, path_local: str) -> dict:
+        async with httpx.AsyncClient(headers=self.headers) as session:
+            dropbox_api_arg = json.dumps({"path": f"{path_remote}"})
+
+            headers = {
+                "Authorization": f"Bearer {self.auth_token}",
+                "Dropbox-API-Arg": dropbox_api_arg
+            }
+            r = await session.post(f"https://content.dropboxapi.com/2/files/download_zip", headers=headers)
+            if r.status_code != 200:
+                if r.status_code == 404:
+                    return self.error_worker(
+                        {"error": {".tag": "NotFoundError"}, "error_summary": "Не удалось найти запрошенный ресурс."})
+                return self.add_error(r)
+
+            path_to_zip = path.join(path.abspath(path_local), "archive.zip")
+            await self.save_file(path_to_zip, r.content)
+            with zipfile.ZipFile(path_to_zip) as zip_ref:
+                zip_ref.extractall(path_local)
+            os.remove(path_to_zip)
+            return {"status": "ok"}
+
+    async def save_file(self, path_local: str, content: bytes):
+        try:
+            async with aiofiles.open(path.abspath(path_local), 'wb') as file:
+                await file.write(content)
+        except FileNotFoundError:
+            return self.error_worker(
+                {"error": {".tag": "FileNotFoundError"}, "message": f"Неверный путь: {path.abspath(path_local)}"})
+
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
         async with httpx.AsyncClient(headers=self.headers) as session:
             data = {
@@ -143,11 +176,9 @@ class Dropbox(Cloud):
             else:
                 if r.status_code == 409:
                     return self.error_worker({"error": {".tag": "FolderConflictError"},
-                                              "error_summary": "Не удалось создать папку, так как ресурс уже существует."})
+                                              "error_summary": "Не удалось создать папку, так как ресурс уже "
+                                                               "существует."})
                 return self.add_error(r)
-
-    def download_folder(self):
-        pass
 
     @staticmethod
     def error_worker(response: dict):
@@ -166,4 +197,4 @@ if __name__ == '__main__':
     a = Dropbox(
         "sl.B1zE1l9_paJIB_KxXX53QODUAuNMKttAgadXypLQzPmADH2lTv1C3M4uHXlRAblvQJb0cIvs0GmR3d5ZRCEjJuCxqOq50tekl2ch8054m-N-myFhHAtzXQK2u2w6cnqyswDOCTB24w0DmV8DPj0EtGg")
     loop = asyncio.get_event_loop()
-    print(loop.run_until_complete(a.upload_folder("testFolder", "/folder1/testFolder")))
+    print(loop.run_until_complete(a.download_folder("/folder1/123", "C:/Users/Михаил/PycharmProjects/Clouds")))
