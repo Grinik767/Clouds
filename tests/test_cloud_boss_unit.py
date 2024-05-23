@@ -1,7 +1,7 @@
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
-from click.testing import CliRunner
+from asyncclick.testing import CliRunner
 
 from main import cli
 
@@ -14,34 +14,45 @@ def runner():
 @pytest.fixture
 def cloud_boss_mock():
     with patch('main.CloudBoss') as MockClass:
-        yield MockClass.return_value
+        mock_instance = MockClass.return_value
+        mock_instance.get_cloud_info = AsyncMock()
+        mock_instance.get_folder_content = AsyncMock()
+        mock_instance.create_folder = AsyncMock()
+        mock_instance.download = AsyncMock()
+        mock_instance.upload = AsyncMock()
+        yield mock_instance
 
 
-def test_info_command(runner, cloud_boss_mock):
-    result = runner.invoke(cli, ['info', '--cloud', 'yandex'])
+@pytest.mark.anyio
+async def test_info_command(runner, cloud_boss_mock):
+    result = await runner.invoke(cli, ['info', '--cloud', 'yandex'])
     assert result.exit_code == 0
     cloud_boss_mock.get_cloud_info.assert_called_once_with('yandex')
 
 
-def test_folder_content_command(runner, cloud_boss_mock):
-    result = runner.invoke(cli, ['folder-content', '/', '--cloud', 'yandex'])
+@pytest.mark.anyio
+async def test_folder_content_command(runner, cloud_boss_mock):
+    result = await runner.invoke(cli, ['folder-content', '/', '--cloud', 'yandex'])
     assert result.exit_code == 0
     cloud_boss_mock.get_folder_content.assert_called_once_with('yandex', '/')
 
 
-def test_create_folder_command(runner, cloud_boss_mock):
-    result = runner.invoke(cli, ['create-folder', 'new_folder', '--cloud', 'yandex'])
+@pytest.mark.anyio
+async def test_create_folder_command(runner, cloud_boss_mock):
+    result = await runner.invoke(cli, ['create-folder', 'new_folder', '--cloud', 'yandex'])
     assert result.exit_code == 0
     cloud_boss_mock.create_folder.assert_called_once_with('yandex', 'new_folder')
 
 
-def test_download_command(runner, cloud_boss_mock):
-    result = runner.invoke(cli, ['download', 'remote_path', 'local_path', '--cloud', 'yandex'])
+@pytest.mark.anyio
+async def test_download_command(runner, cloud_boss_mock):
+    result = await runner.invoke(cli, ['download', 'remote_path', 'local_path', '--cloud', 'yandex'])
     assert result.exit_code == 0
     cloud_boss_mock.download.assert_called_once_with('yandex', 'remote_path', 'local_path')
 
 
-def test_upload_command(runner, cloud_boss_mock):
-    result = runner.invoke(cli, ['upload', 'local_path', 'remote_path', '--cloud', 'yandex'])
+@pytest.mark.anyio
+async def test_upload_command(runner, cloud_boss_mock):
+    result = await runner.invoke(cli, ['upload', 'local_path', 'remote_path', '--cloud', 'yandex'])
     assert result.exit_code == 0
     cloud_boss_mock.upload.assert_called_once_with('yandex', 'local_path', 'remote_path')
