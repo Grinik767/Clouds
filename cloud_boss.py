@@ -2,7 +2,7 @@ import click
 from system_class import SystemClass
 from api_clients.yandex_disk import YandexDisk
 from api_clients.dropbox import Dropbox
-from os import getenv
+from os import getenv, path
 import httpx
 
 
@@ -51,6 +51,9 @@ class CloudBoss:
                 SystemClass.exchandler(type(e2), e2, e2.__traceback__)
 
     async def upload(self, cloud_name: str, path_local: str, path_remote: str):
+        if not path.exists(path.abspath(path_local)):
+            with SystemClass.except_handler(SystemClass.exchandler):
+                raise Exception(f"IncorrectPath. Неверный путь: {path_local}")
         try:
             await self.clouds[cloud_name].upload_file(path_local, path_remote)
             click.echo("Файл успешно загружен!")
