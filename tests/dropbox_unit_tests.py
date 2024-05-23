@@ -125,6 +125,7 @@ async def test_download_file_ok(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path)
     result = await cloud.download_file("/path/to/file.txt", str(local_path))
     assert result["status"] == "ok" and local_path.read_bytes() == b"Hello, World!"
 
+
 @pytest.mark.asyncio
 async def test_download_file_fail_remote(cloud: Dropbox, httpx_mock: HTTPXMock, tmp_path):
     httpx_mock.add_response(
@@ -248,6 +249,3 @@ async def test_download_folder_fail_remote(cloud: Dropbox, httpx_mock: HTTPXMock
     with pytest.raises(Exception) as e_info:
         await cloud.get_folder_content("folder/file.docx")
     assert e_info.value.args[0] == 'NotAFolderError. Запрошенный ресурс не является папкой'
-
-
-

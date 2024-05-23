@@ -1,5 +1,3 @@
-import os
-import zipfile
 from os import path
 
 import aiofiles
@@ -72,34 +70,24 @@ class YandexDisk(Cloud):
             return self.error_worker({"error": error_msg[0], "message": error_msg[1]})
         return response.content
 
-    async def save_file(self, path_local: str, content: bytes):
-        try:
-            async with aiofiles.open(path.abspath(path_local), 'wb') as file:
-                await file.write(content)
-        except FileNotFoundError:
-            return self.error_worker(
-                {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
-
     async def download_file(self, path_remote: str, path_local: str) -> dict:
         if path.isdir(path.abspath(path_local)):
             return self.error_worker(
                 {"error": "FileNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
-        await self.save_file(path_local, await self.download(path_remote))
+        await self.save_file(path_local, await self.download(path_remote), {"error": "FileNotFoundError",
+                                                                            "message": f"Неверный путь: {path.abspath(path_local)}"})
         return {"status": "ok"}
 
     async def download_folder(self, path_remote: str, path_local: str) -> dict:
         if path.isfile(path.abspath(path_local)):
             return self.error_worker(
                 {"error": "FolderNotFoundError", "message": f"Неверный путь: {path.abspath(path_local)}"})
-        path_to_zip = path.join(path.abspath(path_local), "archive.zip")
-        await self.save_file(path_to_zip, await self.download(path_remote, is_file=False))
-        with zipfile.ZipFile(path_to_zip) as zip_ref:
-            zip_ref.extractall(path_local)
-        os.remove(path_to_zip)
+        await self.zip_save_with_extraction(path_remote, path_local, {"error": "FileNotFoundError",
+                                                                      "message": f"Неверный путь: {path.abspath(path_local)}"})
         return {"status": "ok"}
 
     async def upload_file(self, path_local: str, path_remote: str) -> dict:
-        if path.isdir(path_local):
+        if path.isdir(path.abspath(path_local)):
             return self.error_worker({"error": "NotAFile", "message": "Загружаемый ресурс не является файлом"})
         r = await self.client.get(f"{self.url}resources/upload",
                                   params={"path": path_remote, "fields": "href", "overwrite": True})
