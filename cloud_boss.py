@@ -12,9 +12,9 @@ class CloudBoss:
         self.clouds = {"yandex": YandexDisk(getenv("AUTH_TOKEN_YANDEX")),
                        "dropbox": Dropbox(getenv("AUTH_TOKEN_DROPBOX"))}
 
-    def get_cloud_info(self, cloud_name: str):
+    async def get_cloud_info(self, cloud_name: str):
         try:
-            response = self.clouds[cloud_name].get_cloud_info()
+            response = await self.clouds[cloud_name].get_cloud_info()
             click.echo(
                 f"Логин:\t{response['login']}\nИмя:\t{response['name']}\n"
                 f"Всего места:\t{round(response['total_space'], 3)} "
@@ -22,9 +22,9 @@ class CloudBoss:
         except httpx.HTTPError:
             click.echo("Произошла ошибка. Попробуйте позже.")
 
-    def get_folder_content(self, cloud_name: str, path: str):
+    async def get_folder_content(self, cloud_name: str, path: str):
         try:
-            response = self.clouds[cloud_name].get_folder_content(path)
+            response = await self.clouds[cloud_name].get_folder_content(path)
             click.echo('\n'.join(map(lambda el: f"/{el}", response['folders'])))
             click.echo('\n'.join(response['files']))
         except httpx.HTTPError:

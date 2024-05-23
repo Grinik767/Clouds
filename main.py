@@ -1,4 +1,6 @@
-import click
+import asyncclick as click
+
+import asyncio
 
 from cloud_boss import CloudBoss
 
@@ -13,9 +15,9 @@ def cli(ctx):
 @click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
               prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
-def info(ctx, cloud: str):
+async def info(ctx, cloud: str):
     """Получить информацию об облаке."""
-    ctx.obj.get_cloud_info(cloud)
+    await ctx.obj.get_cloud_info(cloud)
 
 
 @cli.command()
@@ -23,9 +25,9 @@ def info(ctx, cloud: str):
 @click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
               prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
-def folder_content(ctx, path: str, cloud: str):
+async def folder_content(ctx, path: str, cloud: str):
     """Получить содержимое папки в облаке."""
-    ctx.obj.get_folder_content(cloud, path)
+    await ctx.obj.get_folder_content(cloud, path)
 
 
 @cli.command()
@@ -33,9 +35,10 @@ def folder_content(ctx, path: str, cloud: str):
 @click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
               prompt='Выберите облако (Yandex/Dropbox)', help='Выбор облака')
 @click.pass_context
-def create_folder(ctx, path: str, cloud: str):
+async def create_folder(ctx, path: str, cloud: str):
     """Создать папку в облаке."""
-    ctx.obj.create_folder(cloud, path)
+    await ctx.obj.create_folder(cloud, path)
+
 
 @cli.command()
 @click.option('--cloud', type=click.Choice(['yandex', 'dropbox'], case_sensitive=False),
@@ -43,9 +46,9 @@ def create_folder(ctx, path: str, cloud: str):
 @click.argument('path_remote')
 @click.argument('path_local')
 @click.pass_context
-def download(ctx, path_remote: str, path_local: str, cloud: str):
+async def download(ctx, path_remote: str, path_local: str, cloud: str):
     """Скачать файл/папку из облака."""
-    ctx.obj.download(cloud, path_remote, path_local)
+    await ctx.obj.download(cloud, path_remote, path_local)
 
 
 @cli.command()
@@ -54,10 +57,10 @@ def download(ctx, path_remote: str, path_local: str, cloud: str):
 @click.argument('path_local')
 @click.argument('path_remote')
 @click.pass_context
-def upload(ctx, path_local: str, path_remote: str, cloud: str):
+async def upload(ctx, path_local: str, path_remote: str, cloud: str):
     """Загрузить файл/папку в облако."""
-    ctx.obj.upload(cloud, path_local, path_remote)
+    await ctx.obj.upload(cloud, path_local, path_remote)
 
 
 if __name__ == '__main__':
-    cli()
+    asyncio.run(cli())
