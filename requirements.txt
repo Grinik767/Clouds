@@ -6,3 +6,4 @@ click==8.1.7
 pytest-asyncio==0.23.7
 aiofiles==23.2.1
 asyncclick==8.1.7.2
+trio==0.25.1
