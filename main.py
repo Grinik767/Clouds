@@ -63,4 +63,5 @@ async def upload(ctx, path_local: str, path_remote: str, cloud: str):
 
 
 if __name__ == '__main__':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
     asyncio.run(cli())

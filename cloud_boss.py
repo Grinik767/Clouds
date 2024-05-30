@@ -11,8 +11,12 @@ from system_class import SystemClass
 class CloudBoss:
     def __init__(self):
         SystemClass.load_env(dev=False)
-        self.clouds = {"yandex": YandexDisk(getenv("AUTH_TOKEN_YANDEX")),
-                       "dropbox": Dropbox(getenv("AUTH_TOKEN_DROPBOX"))}
+        try:
+            self.clouds = {"yandex": YandexDisk(getenv("AUTH_TOKEN_YANDEX")),
+                           "dropbox": Dropbox(getenv("AUTH_TOKEN_DROPBOX"))}
+        except httpx.HTTPError:
+            click.echo("Произошла ошибка. Попробуйте позже.")
+            exit(-1)
 
     async def get_cloud_info(self, cloud_name: str):
         try:

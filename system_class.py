@@ -1,10 +1,12 @@
 import os
 import sys
 from contextlib import contextmanager
-from logging import error
+from logging import getLogger
 from typing import Callable
 
 from dotenv import load_dotenv
+
+logger = getLogger(__name__)
 
 
 class SystemClass:
@@ -29,4 +31,4 @@ class SystemClass:
 
     @staticmethod
     def exchandler(type, value, traceback):
-        error(value)
+        logger.error(value)
