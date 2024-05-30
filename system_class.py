@@ -1,6 +1,7 @@
 import os
 import sys
 from contextlib import contextmanager
+from logging import error
 from typing import Callable
 
 from dotenv import load_dotenv
@@ -28,4 +29,4 @@ class SystemClass:
 
     @staticmethod
     def exchandler(type, value, traceback):
-        print(': '.join([str(type.__name__), str(value)]))
+        error(value)
